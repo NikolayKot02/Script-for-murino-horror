@@ -2,26 +2,28 @@
     SWILL CORE // MEGA HUB WITH INSANE HOLY SPICE + ANTI ARTUR
     Full feature set + INSANE Holy Spice + Auto Artur TP + Config System + Unload Script
     Author: denchik_klasn (Modified by NikolayKot)
+    original script: loadstring(game:HttpGet("https://pastefy.app/gop6pus0/raw"))()
     Team: Swill Way
-    Version: 26.09.2025
+    Version: 2026 Refactor (Rayfield Gen2 Compliant)
 ]]
 
 local HttpService = game:GetService("HttpService")
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+local Rayfield = loadstring(game:HttpGet("https://sirius.menu/gen2"))()
 
 local Window = Rayfield:CreateWindow({
-    Name = "SCRIPT FOR MURINO HORROR",
-    LoadingTitle = "Murino horror",
-    LoadingSubtitle = "by NikolayKot",
-    ConfigurationSaving = {Enabled = false}
+    name = "SKRIPT FOR MURINO HORROR",
+    subtitle = "by NikolayKot",
+    configuration = {
+        autoSave = false
+    }
 })
 
 -- Create tabs
-local TabFarm = Window:CreateTab("Farm", 4483362458)
-local TabPlayer = Window:CreateTab("Player", 4483362458)
-local TabVisual = Window:CreateTab("Visual", 4483362458)
-local TabMonster = Window:CreateTab("Monster", 4483362458)
-local TabSettings = Window:CreateTab("Settings", 4483362458)
+local TabFarm = Window:CreateTab({ name = "Farm", icon = 4483362458 })
+local TabPlayer = Window:CreateTab({ name = "Player", icon = 4483362458 })
+local TabVisual = Window:CreateTab({ name = "Visual", icon = 4483362458 })
+local TabMonster = Window:CreateTab({ name = "Monster", icon = 4483362458 })
+local TabSettings = Window:CreateTab({ name = "Settings", icon = 4483362458 })
 
 -- ===== SERVICES =====
 local plr = game:GetService("Players").LocalPlayer
@@ -29,7 +31,25 @@ local runService = game:GetService("RunService")
 local lighting = game:GetService("Lighting")
 
 -- ===== UI ELEMENTS REFERENCES =====
-local uiElements = {}
+local uiElements = {
+    FarmToggle = nil,
+    WalkSpeedToggle = nil,
+    SpeedSlider = nil,
+    NoclipToggle = nil,
+    FullbrightToggle = nil,
+    HolySpiceToggle = nil,
+    IntensitySlider = nil,
+    AntiArturToggle = nil,
+    NoclipKeybind = nil,
+    ArturTpKeybind = nil,
+    AutoTeleportToggle = nil,
+    ConfigDropdown = nil
+}
+
+-- ===== EXECUTOR ENVIRONMENT HELPERS =====
+local env = getgenv and getgenv() or _G
+local fire_prompt = env.fireproximityprompt or fireproximityprompt
+local queue_tp = env.queue_on_teleport or (env.syn and env.syn.queue_on_teleport) or (env.fluxus and env.fluxus.queue_on_teleport)
 
 -- ===== VARIABLES =====
 local isScriptRunning = true
@@ -72,6 +92,11 @@ local isTeleportingToArtur = false
 local noclipKeybind = "N"
 local arturTpKeybind = "F"
 
+-- Auto Exec on Teleport
+local autoExecOnTeleport = false
+local teleportConnection = nil
+local RAW_SCRIPT_URL = "https://raw.githubusercontent.com/NikolayKot02/Script-for-murino-horror/refs/heads/main/Skriptmurino.lua"
+
 -- Config Variables
 local configFolder = "SwillHub_Configs"
 local selectedConfig = "---"
@@ -96,7 +121,9 @@ local function updateWalkspeed()
 end
 
 local function startWalkspeed()
-    if walkspeedConnection then walkspeedConnection:Disconnect() end
+    if walkspeedConnection then 
+        walkspeedConnection:Disconnect() 
+    end
     walkspeedEnabled = true
     walkspeedConnection = runService.Heartbeat:Connect(updateWalkspeed)
 end
@@ -110,7 +137,9 @@ local function stopWalkspeed()
     local char = plr.Character
     if char then
         local humanoid = char:FindFirstChildOfClass("Humanoid")
-        if humanoid then humanoid.WalkSpeed = 16 end
+        if humanoid then 
+            humanoid.WalkSpeed = 16 
+        end
     end
 end
 
@@ -148,9 +177,19 @@ local function stopNoclip()
 end
 
 local function toggleNoclip(state)
-    if state == nil then state = not noclipEnabled end
-    if state then startNoclip() else stopNoclip() end
-    if uiElements.NoclipToggle then uiElements.NoclipToggle:Set(noclipEnabled) end
+    if state == nil then 
+        state = not noclipEnabled 
+    end
+    
+    if state then 
+        startNoclip() 
+    else 
+        stopNoclip() 
+    end
+    
+    if uiElements.NoclipToggle and uiElements.NoclipToggle.Set then 
+        uiElements.NoclipToggle:Set(noclipEnabled) 
+    end
 end
 
 -- ===== FULLBRIGHT =====
@@ -269,7 +308,13 @@ local function activate(coin)
     prompt.HoldDuration = 0
     prompt.MaxActivationDistance = 100
     prompt.RequiresLineOfSight = false
-    local success = pcall(function() fireproximityprompt(prompt) end)
+    
+    local success = pcall(function() 
+        if fire_prompt then
+            fire_prompt(prompt)
+        end
+    end)
+    
     prompt.HoldDuration, prompt.MaxActivationDistance, prompt.RequiresLineOfSight = oldHold, oldDist, oldLOS
     return success
 end
@@ -283,7 +328,9 @@ local function farmLoop()
                 if coin.model and coin.model.Parent then
                     if tpTo(coin) then
                         task.wait(0.3)
-                        if activate(coin) then collected = collected + 1 end
+                        if activate(coin) then 
+                            collected = collected + 1 
+                        end
                     end
                 end
                 task.wait(0.5)
@@ -322,11 +369,17 @@ local function teleportToArturAndActivate(arturObj)
     if isTeleportingToArtur then return end
     isTeleportingToArtur = true
     local char = plr.Character
-    if not char or not char:FindFirstChild("HumanoidRootPart") then isTeleportingToArtur = false return end
+    if not char or not char:FindFirstChild("HumanoidRootPart") then 
+        isTeleportingToArtur = false 
+        return 
+    end
     
     local arturPos = nil
     local success, pivot = pcall(function() return arturObj:GetPivot().Position end)
-    if not success then isTeleportingToArtur = false return end
+    if not success then 
+        isTeleportingToArtur = false 
+        return 
+    end
     arturPos = pivot
     
     local oldPos = char.HumanoidRootPart.CFrame
@@ -339,7 +392,11 @@ local function teleportToArturAndActivate(arturObj)
         prompt.HoldDuration = 0
         prompt.MaxActivationDistance = 100
         prompt.RequiresLineOfSight = false
-        pcall(function() fireproximityprompt(prompt) end)
+        pcall(function() 
+            if fire_prompt then
+                fire_prompt(prompt) 
+            end
+        end)
         prompt.HoldDuration, prompt.MaxActivationDistance, prompt.RequiresLineOfSight = oldHold, oldDist, oldLOS
     end
     
@@ -354,7 +411,7 @@ local function manualTeleportToArtur()
     if artur then
         teleportToArturAndActivate(artur)
     else
-        Rayfield:Notify({Title = "Anti Artur", Content = "Artur not found in Hitboxes!", Duration = 2})
+        Window:Notify({ title = "Anti Artur", content = "Artur not found in Hitboxes!" })
     end
 end
 
@@ -370,84 +427,181 @@ end
 
 local function stopAntiArtur()
     antiArturEnabled = false
-    if antiArturConnection then antiArturConnection:Disconnect(); antiArturConnection = nil end
+    if antiArturConnection then 
+        antiArturConnection:Disconnect()
+        antiArturConnection = nil 
+    end
+end
+
+-- ===== AUTO EXECUTE ON TELEPORT =====
+local function setupAutoTeleportExec()
+    if teleportConnection then teleportConnection:Disconnect() end
+    
+    teleportConnection = plr.OnTeleport:Connect(function()
+        if autoExecOnTeleport and isScriptRunning then
+            if queue_tp then
+                local codeToQueue = string.format([[
+                    repeat task.wait() until game:IsLoaded()
+                    local success, scriptContent = pcall(function()
+                        return game:HttpGet("%s")
+                    end)
+                    if success and scriptContent then
+                        local loadedFunc, err = loadstring(scriptContent)
+                        if loadedFunc then
+                            loadedFunc()
+                        else
+                            warn("Auto-exec loadstring error:", err)
+                        end
+                    else
+                        warn("Failed to download script on teleport!")
+                    end
+                ]], RAW_SCRIPT_URL)
+                
+                queue_tp(codeToQueue)
+            end
+        end
+    end)
 end
 
 -- ===== UNLOAD / DISABLE SCRIPT =====
 local function unloadScript()
     isScriptRunning = false
     
-    -- Выключаем все функции
     stopFarm()
     stopWalkspeed()
     stopNoclip()
     stopFullbright()
     stopHolySpice()
     stopAntiArtur()
+    if teleportConnection then teleportConnection:Disconnect() end
     
-    -- Восстанавливаем свет
     revertFullbright()
-    
-    -- Закрываем/удаляем Rayfield GUI
-    Rayfield:Destroy()
+    Window:Unload()
     print("SWILL MEGA HUB - Script successfully disabled and unloaded.")
 end
 
 -- ===== INTERFACE - FARM TAB =====
-TabFarm:CreateLabel("COIN FARM")
+TabFarm:CreateSection({ name = "Coin Farm" })
+
 uiElements.FarmToggle = TabFarm:CreateToggle({
-    Name = "ON/OFF FARM",
-    CurrentValue = false,
-    Callback = function(v) if v then startFarm() else stopFarm() end end,
+    name = "ON/OFF FARM",
+    currentValue = false,
+    callback = function(v) 
+        if v then startFarm() else stopFarm() end 
+    end,
 })
-TabFarm:CreateButton({ Name = "SCAN COINS", Callback = function() print("Found coins:", #findCoins()) end })
-TabFarm:CreateButton({ Name = "TEST: collect one", Callback = function() local c = findCoins()[1]; if c and tpTo(c) then task.wait(0.3); activate(c) end end })
-TabFarm:CreateButton({ Name = "RESET COUNTER", Callback = function() collected = 0 end })
-local farmStatus = TabFarm:CreateLabel("Status: Off | Collected: 0")
+
+TabFarm:CreateButton({ 
+    name = "SCAN COINS", 
+    callback = function() print("Found coins:", #findCoins()) end 
+})
+
+TabFarm:CreateButton({ 
+    name = "TEST: collect one", 
+    callback = function() 
+        local c = findCoins()[1]
+        if c and tpTo(c) then 
+            task.wait(0.3)
+            activate(c) 
+        end 
+    end 
+})
+
+TabFarm:CreateButton({ 
+    name = "RESET COUNTER", 
+    callback = function() collected = 0 end 
+})
 
 -- ===== INTERFACE - PLAYER TAB =====
-TabPlayer:CreateLabel("WALKSPEED")
+TabPlayer:CreateSection({ name = "WalkSpeed" })
+
 uiElements.WalkSpeedToggle = TabPlayer:CreateToggle({
-    Name = "ON/OFF WALKSPEED",
-    CurrentValue = false,
-    Callback = function(v) if v then startWalkspeed() else stopWalkspeed() end end,
+    name = "ON/OFF WALKSPEED",
+    currentValue = false,
+    callback = function(v) 
+        if v then startWalkspeed() else stopWalkspeed() end 
+    end,
 })
+
 uiElements.SpeedSlider = TabPlayer:CreateSlider({
-    Name = "Speed", Range = {16, 200}, Increment = 1, Suffix = "speed", CurrentValue = 16,
-    Callback = function(v) walkspeed = v; if walkspeedEnabled then updateWalkspeed() end end,
+    name = "Speed", 
+    range = {16, 200}, 
+    increment = 1, 
+    suffix = "speed", 
+    currentValue = 16,
+    callback = function(v) 
+        walkspeed = v
+        if walkspeedEnabled then updateWalkspeed() end 
+    end,
 })
-TabPlayer:CreateLabel("NOCLIP")
+
+TabPlayer:CreateSection({ name = "Noclip" })
+
 uiElements.NoclipToggle = TabPlayer:CreateToggle({
-    Name = "ON/OFF NOCLIP", CurrentValue = false,
-    Callback = function(v) toggleNoclip(v) end,
+    name = "ON/OFF NOCLIP", 
+    currentValue = false,
+    callback = function(v) toggleNoclip(v) end,
 })
-local playerStatus = TabPlayer:CreateLabel("WalkSpeed: Off | Noclip: Off")
 
 -- ===== INTERFACE - VISUAL TAB =====
-TabVisual:CreateLabel("LIGHTING")
+TabVisual:CreateSection({ name = "Lighting" })
+
 uiElements.FullbrightToggle = TabVisual:CreateToggle({
-    Name = "FULLBRIGHT", CurrentValue = false,
-    Callback = function(v) if v then if holySpiceEnabled then stopHolySpice() end; startFullbright() else stopFullbright() end end,
+    name = "FULLBRIGHT", 
+    currentValue = false,
+    callback = function(v) 
+        if v then 
+            if holySpiceEnabled then stopHolySpice() end
+            startFullbright() 
+        else 
+            stopFullbright() 
+        end 
+    end,
 })
+
 uiElements.HolySpiceToggle = TabVisual:CreateToggle({
-    Name = "HOLY SPICE (INSANE)", CurrentValue = false,
-    Callback = function(v) if v then if fullbrightEnabled then stopFullbright() end; startHolySpice() else stopHolySpice() end end,
+    name = "HOLY SPICE (INSANE)", 
+    currentValue = false,
+    callback = function(v) 
+        if v then 
+            if fullbrightEnabled then stopFullbright() end
+            startHolySpice() 
+        else 
+            stopHolySpice() 
+        end 
+    end,
 })
+
 uiElements.IntensitySlider = TabVisual:CreateSlider({
-    Name = "Intensity", Range = {1, 5}, Increment = 0.5, Suffix = "x", CurrentValue = 3.0,
-    Callback = function(v) holySpiceIntensity = v end,
+    name = "Intensity", 
+    range = {1, 5}, 
+    increment = 0.5, 
+    suffix = "x", 
+    currentValue = 3.0,
+    callback = function(v) holySpiceIntensity = v end,
 })
-TabVisual:CreateButton({ Name = "RESET LIGHTING", Callback = function() stopHolySpice(); stopFullbright() end })
-local visualStatus = TabVisual:CreateLabel("Fullbright: Off | Holy Spice: Off")
+
+TabVisual:CreateButton({ 
+    name = "RESET LIGHTING", 
+    callback = function() 
+        stopHolySpice()
+        stopFullbright() 
+    end 
+})
 
 -- ===== INTERFACE - MONSTER TAB =====
-TabMonster:CreateLabel("ANTI ARTUR")
+TabMonster:CreateSection({ name = "Anti Artur Controls" })
+
 uiElements.AntiArturToggle = TabMonster:CreateToggle({
-    Name = "ANTI ARTUR", Description = "Auto teleport to Artur and press E when appears in Hitboxes", CurrentValue = false,
-    Callback = function(v) if v then startAntiArtur() else stopAntiArtur() end end,
+    name = "ANTI ARTUR", 
+    description = "Auto teleport to Artur and press E when appears in Hitboxes", 
+    currentValue = false,
+    callback = function(v) 
+        if v then startAntiArtur() else stopAntiArtur() end 
+    end,
 })
-TabMonster:CreateButton({ Name = "TEST: Teleport to Artur", Callback = manualTeleportToArtur })
-local monsterStatus = TabMonster:CreateLabel("Anti Artur: Off")
+
+TabMonster:CreateButton({ name = "TEST: Teleport to Artur", callback = manualTeleportToArtur })
 
 -- ===== CONFIG SYSTEM FUNCTIONS =====
 local function getConfigFileList()
@@ -475,28 +629,72 @@ local function getCurrentConfigData()
         HolySpiceEnabled = holySpiceEnabled,
         HolySpiceIntensity = holySpiceIntensity,
         AntiArturEnabled = antiArturEnabled,
-        FarmEnabled = farming
+        FarmEnabled = farming,
+        AutoExecOnTeleport = autoExecOnTeleport
     }
 end
 
 local function applyConfigData(data)
     if not data then return end
     
-    if data.WalkSpeed ~= nil and uiElements.SpeedSlider then uiElements.SpeedSlider:Set(data.WalkSpeed) end
-    if data.WalkSpeedEnabled ~= nil and uiElements.WalkSpeedToggle then uiElements.WalkSpeedToggle:Set(data.WalkSpeedEnabled) end
-    if data.NoclipEnabled ~= nil and uiElements.NoclipToggle then uiElements.NoclipToggle:Set(data.NoclipEnabled) end
-    if data.NoclipKeybind ~= nil and uiElements.NoclipKeybind then uiElements.NoclipKeybind:Set(data.NoclipKeybind) end
-    if data.ArturTpKeybind ~= nil and uiElements.ArturTpKeybind then uiElements.ArturTpKeybind:Set(data.ArturTpKeybind) end
-    if data.FullbrightEnabled ~= nil and uiElements.FullbrightToggle then uiElements.FullbrightToggle:Set(data.FullbrightEnabled) end
-    if data.HolySpiceEnabled ~= nil and uiElements.HolySpiceToggle then uiElements.HolySpiceToggle:Set(data.HolySpiceEnabled) end
-    if data.HolySpiceIntensity ~= nil and uiElements.IntensitySlider then uiElements.IntensitySlider:Set(data.HolySpiceIntensity) end
-    if data.AntiArturEnabled ~= nil and uiElements.AntiArturToggle then uiElements.AntiArturToggle:Set(data.AntiArturEnabled) end
-    if data.FarmEnabled ~= nil and uiElements.FarmToggle then uiElements.FarmToggle:Set(data.FarmEnabled) end
+    if data.WalkSpeed ~= nil and uiElements.SpeedSlider then 
+        uiElements.SpeedSlider:Set(data.WalkSpeed) 
+    end
+    
+    if data.WalkSpeedEnabled ~= nil and uiElements.WalkSpeedToggle then
+        uiElements.WalkSpeedToggle:Set(data.WalkSpeedEnabled)
+    end
+    
+    if data.NoclipEnabled ~= nil and uiElements.NoclipToggle then
+        uiElements.NoclipToggle:Set(data.NoclipEnabled)
+    end
+    
+    if data.NoclipKeybind ~= nil and uiElements.NoclipKeybind then 
+        uiElements.NoclipKeybind:Set(data.NoclipKeybind) 
+    end
+    
+    if data.ArturTpKeybind ~= nil and uiElements.ArturTpKeybind then 
+        uiElements.ArturTpKeybind:Set(data.ArturTpKeybind) 
+    end
+    
+    if data.HolySpiceIntensity ~= nil and uiElements.IntensitySlider then 
+        uiElements.IntensitySlider:Set(data.HolySpiceIntensity) 
+    end
+    
+    if data.HolySpiceEnabled ~= nil and uiElements.HolySpiceToggle then
+        uiElements.HolySpiceToggle:Set(data.HolySpiceEnabled)
+    end
+
+    if data.FullbrightEnabled ~= nil and uiElements.FullbrightToggle then
+        uiElements.FullbrightToggle:Set(data.FullbrightEnabled)
+    end
+    
+    if data.AntiArturEnabled ~= nil and uiElements.AntiArturToggle then
+        uiElements.AntiArturToggle:Set(data.AntiArturEnabled)
+    end
+    
+    if data.FarmEnabled ~= nil and uiElements.FarmToggle then
+        uiElements.FarmToggle:Set(data.FarmEnabled)
+    end
+    
+    if data.AutoExecOnTeleport ~= nil and uiElements.AutoTeleportToggle then 
+        uiElements.AutoTeleportToggle:Set(data.AutoExecOnTeleport) 
+    end
+
+    -- Гарантированный запуск визуалов с задержкой в 1 кадр
+    task.defer(function()
+        if data.FullbrightEnabled then
+            fullbrightEnabled = true
+            applyFullbright()
+        elseif data.HolySpiceEnabled then
+            startHolySpice()
+        end
+    end)
 end
 
 local function saveConfigToFile(cfgName)
     if cfgName == "" or cfgName == "---" then
-        Rayfield:Notify({Title = "Config Error", Content = "Please enter a valid config name!", Duration = 3})
+        Window:Notify({ title = "Config Error", content = "Please enter a valid config name!" })
         return
     end
     
@@ -504,7 +702,7 @@ local function saveConfigToFile(cfgName)
         local filepath = configFolder .. "/" .. cfgName .. ".json"
         local jsonData = HttpService:JSONEncode(getCurrentConfigData())
         writefile(filepath, jsonData)
-        Rayfield:Notify({Title = "Config Saved", Content = "Successfully saved config: " .. cfgName, Duration = 3})
+        Window:Notify({ title = "Config Saved", content = "Successfully saved config: " .. cfgName })
     end
 end
 
@@ -517,7 +715,7 @@ local function loadConfigFromFile(cfgName)
         local success, data = pcall(function() return HttpService:JSONDecode(content) end)
         if success and data then
             applyConfigData(data)
-            Rayfield:Notify({Title = "Config Loaded", Content = "Loaded config: " .. cfgName, Duration = 3})
+            Window:Notify({ title = "Config Loaded", content = "Loaded config: " .. cfgName })
         end
     end
 end
@@ -527,21 +725,25 @@ local function deleteConfigFile(cfgName)
     local filepath = configFolder .. "/" .. cfgName .. ".json"
     if isfile and delfile and isfile(filepath) then
         delfile(filepath)
-        Rayfield:Notify({Title = "Config Deleted", Content = "Deleted config: " .. cfgName, Duration = 3})
+        Window:Notify({ title = "Config Deleted", content = "Deleted config: " .. cfgName })
     end
 end
 
 -- ===== INTERFACE - SETTINGS TAB =====
-
-TabSettings:CreateLabel("KEYBINDS")
+TabSettings:CreateSection({ name = "Keybinds & Automation" })
 
 uiElements.NoclipKeybind = TabSettings:CreateKeybind({
-    Name = "Noclip Toggle Key",
-    CurrentKeybind = "N",
-    HoldToInteract = false,
-    CallOnKeycode = true,
-    Callback = function(key)
-        noclipKeybind = tostring(key):gsub("Enum.KeyCode.", "")
+    name = "Noclip Toggle Key",
+    default = Enum.KeyCode.N,
+    holdToInteract = false,
+    callOnKeycode = true,
+    callback = function(key)
+        if typeof(key) == "EnumItem" then
+            noclipKeybind = key.Name
+        else
+            noclipKeybind = tostring(key):gsub("Enum.KeyCode.", "")
+        end
+        
         if isScriptRunning then
             toggleNoclip()
         end
@@ -549,47 +751,62 @@ uiElements.NoclipKeybind = TabSettings:CreateKeybind({
 })
 
 uiElements.ArturTpKeybind = TabSettings:CreateKeybind({
-    Name = "Artur Teleport Key",
-    CurrentKeybind = "F",
-    HoldToInteract = false,
-    CallOnKeycode = true,
-    Callback = function(key)
-        arturTpKeybind = tostring(key):gsub("Enum.KeyCode.", "")
+    name = "Artur Teleport Key",
+    default = Enum.KeyCode.F,
+    holdToInteract = false,
+    callOnKeycode = true,
+    callback = function(key)
+        if typeof(key) == "EnumItem" then
+            arturTpKeybind = key.Name
+        else
+            arturTpKeybind = tostring(key):gsub("Enum.KeyCode.", "")
+        end
+        
         if isScriptRunning then
             manualTeleportToArtur()
         end
     end,
 })
 
-TabSettings:CreateLabel("Config name")
+uiElements.AutoTeleportToggle = TabSettings:CreateToggle({
+    name = "Auto-exec on Teleport",
+    description = "Re-executes the script when teleported between games/places",
+    currentValue = false,
+    callback = function(v)
+        autoExecOnTeleport = v
+        if writefile then
+            writefile(configFolder .. "/autoexec_state.txt", tostring(v))
+        end
+    end,
+})
+
+TabSettings:CreateSection({ name = "Config Management" })
 
 TabSettings:CreateInput({
-    Name = "Config Name Input",
-    PlaceholderText = "Enter config name...",
-    RemoveTextOnFocusLost = false,
-    Callback = function(Text)
+    name = "Config Name Input",
+    placeholderText = "Enter config name...",
+    removeTextOnFocusLost = false,
+    callback = function(Text)
         currentConfigNameInput = Text
     end,
 })
 
 TabSettings:CreateButton({
-    Name = "Create config",
-    Callback = function()
+    name = "Create config",
+    callback = function()
         saveConfigToFile(currentConfigNameInput)
-        if uiElements.ConfigDropdown then
+        if uiElements.ConfigDropdown and uiElements.ConfigDropdown.Refresh then
             uiElements.ConfigDropdown:Refresh(getConfigFileList())
         end
     end,
 })
 
-TabSettings:CreateLabel("Config list")
-
 uiElements.ConfigDropdown = TabSettings:CreateDropdown({
-    Name = "Select Config",
-    Options = getConfigFileList(),
-    CurrentOption = {"---"},
-    MultipleOptions = false,
-    Callback = function(Option)
+    name = "Select Config",
+    options = getConfigFileList(),
+    currentOption = {"---"},
+    multipleOptions = false,
+    callback = function(Option)
         if type(Option) == "table" then
             selectedConfig = Option[1] or "---"
         else
@@ -599,100 +816,92 @@ uiElements.ConfigDropdown = TabSettings:CreateDropdown({
 })
 
 TabSettings:CreateButton({
-    Name = "Load config",
-    Callback = function()
+    name = "Load config",
+    callback = function()
         loadConfigFromFile(selectedConfig)
     end,
 })
 
 TabSettings:CreateButton({
-    Name = "Overwrite config",
-    Callback = function()
+    name = "Overwrite config",
+    callback = function()
         saveConfigToFile(selectedConfig)
     end,
 })
 
 TabSettings:CreateButton({
-    Name = "Delete config",
-    Callback = function()
+    name = "Delete config",
+    callback = function()
         deleteConfigFile(selectedConfig)
-        if uiElements.ConfigDropdown then
+        if uiElements.ConfigDropdown and uiElements.ConfigDropdown.Refresh then
             uiElements.ConfigDropdown:Refresh(getConfigFileList())
         end
     end,
 })
 
 TabSettings:CreateButton({
-    Name = "Refresh list",
-    Callback = function()
-        if uiElements.ConfigDropdown then
+    name = "Refresh list",
+    callback = function()
+        if uiElements.ConfigDropdown and uiElements.ConfigDropdown.Refresh then
             uiElements.ConfigDropdown:Refresh(getConfigFileList())
         end
     end,
 })
 
-local autoloadLabel = TabSettings:CreateLabel("Current autoload config: none")
-
 TabSettings:CreateButton({
-    Name = "Set as autoload",
-    Callback = function()
+    name = "Set as autoload",
+    callback = function()
         if selectedConfig ~= "---" and selectedConfig ~= "" then
             if writefile then
                 writefile(configFolder .. "/autoload.txt", selectedConfig)
-                autoloadLabel:Set("Current autoload config: " .. selectedConfig)
-                Rayfield:Notify({Title = "Autoload Set", Content = "Autoload set to: " .. selectedConfig, Duration = 3})
+                Window:Notify({ title = "Autoload Set", content = "Autoload set to: " .. selectedConfig })
             end
         end
     end,
 })
 
 TabSettings:CreateButton({
-    Name = "Reset autoload",
-    Callback = function()
+    name = "Reset autoload",
+    callback = function()
         if isfile and delfile and isfile(configFolder .. "/autoload.txt") then
             delfile(configFolder .. "/autoload.txt")
         end
-        autoloadLabel:Set("Current autoload config: none")
-        Rayfield:Notify({Title = "Autoload Reset", Content = "Cleared autoload config", Duration = 3})
+        Window:Notify({ title = "Autoload Reset", content = "Cleared autoload config" })
     end,
 })
 
-TabSettings:CreateLabel("UNLOAD SCRIPT")
+TabSettings:CreateSection({ name = "Unload Script" })
 
 TabSettings:CreateButton({
-    Name = "Destroy Script / Unload",
-    Callback = function()
+    name = "Destroy Script / Unload",
+    callback = function()
         unloadScript()
     end,
 })
 
--- ===== CHECK AUTOLOAD ON START =====
+-- ===== INITIALIZE TELEPORT HANDLER =====
+setupAutoTeleportExec()
+
+-- ===== CHECK AUTOLOAD & SAVED STATES ON START =====
 task.spawn(function()
-    task.wait(1)
+    task.wait(0.5)
+    
+    -- Восстанавливаем состояние Auto-exec
+    local stateFile = configFolder .. "/autoexec_state.txt"
+    if isfile and readfile and isfile(stateFile) then
+        local savedState = readfile(stateFile)
+        if savedState == "true" and uiElements.AutoTeleportToggle then
+            uiElements.AutoTeleportToggle:Set(true)
+        end
+    end
+    
+    task.wait(0.5)
     local autoFile = configFolder .. "/autoload.txt"
     if isfile and readfile and isfile(autoFile) then
         local autoName = readfile(autoFile)
         if autoName and autoName ~= "" then
-            autoloadLabel:Set("Current autoload config: " .. autoName)
             loadConfigFromFile(autoName)
         end
-    end
-end)
-
--- ===== UPDATE STATUSES =====
-task.spawn(function()
-    while isScriptRunning do
-        if farming then
-            farmStatus:Set("Status: ON | Collected: " .. collected .. " | On map: " .. #findCoins())
-        else
-            farmStatus:Set("Status: Off | Collected: " .. collected)
-        end
-        
-        playerStatus:Set("WalkSpeed: " .. (walkspeedEnabled and "On" or "Off") .. " | Noclip: " .. (noclipEnabled and "On" or "Off"))
-        visualStatus:Set("Fullbright: " .. (fullbrightEnabled and "On" or "Off") .. " | Holy Spice: " .. (holySpiceEnabled and "On" or "Off"))
-        monsterStatus:Set("Anti Artur: " .. (antiArturEnabled and "On" or "Off"))
-        
-        task.wait(1)
     end
 end)
 
@@ -701,4 +910,5 @@ task.wait(1)
 print("=================================")
 print("Script for Murino horror")
 print("Author: NikolayKot")
+print("Original script: loadstring(game:HttpGet("https://pastefy.app/gop6pus0/raw"))()")
 print("=================================")
