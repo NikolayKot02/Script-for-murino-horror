@@ -907,8 +907,9 @@ end)
 
 -- ===== WELCOME =====
 task.wait(1)
+script = "https://rscripts.net/script/murino-horror-script-KwMX?__cf_chl_tk=um2QULuk7Dl8XrXjggu09B_j2j_S_KT7Rr9MgZk7fEo-1785074912-1.0.1.1-j7N6Lw0ei._5KjdY5Y44BdyYdI1V9yAr3JyGK2onBeI"
 print("=================================")
 print("Script for Murino horror")
 print("Author: NikolayKot")
-print("Original script: loadstring(game:HttpGet("https://pastefy.app/gop6pus0/raw"))()")
+print("Original script:",script)
 print("=================================")
