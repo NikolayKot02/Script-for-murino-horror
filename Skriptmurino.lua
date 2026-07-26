@@ -1,5 +1,5 @@
 --[[
-    SWILL CORE // MEGA HUB WITH INSANE HOLY SPICE + ANTI ARTUR
+    SWILL CORE // MEGA HUB WITH INSANE HOLY SPICE + ANTI ARTUR + GITHUB LOCALIZATION
     Full feature set + INSANE Holy Spice + Auto Artur TP + Config System + Unload Script
     Author: denchik_klasn (Modified by NikolayKot)
     original script: loadstring(game:HttpGet("https://pastefy.app/gop6pus0/raw"))()
@@ -15,6 +15,45 @@ end
 _G.SwillHubLoaded = true
 
 local HttpService = game:GetService("HttpService")
+
+-- ===== GITHUB & LOCALIZATION CONFIG =====
+local GITHUB_USER = "NikolayKot02"
+local GITHUB_REPO = "Script-for-murino-horror"
+local GITHUB_BRANCH = "main"
+local RAW_SCRIPT_URL = "https://raw.githubusercontent.com/NikolayKot02/Script-for-murino-horror/refs/heads/main/Skriptmurino.lua"
+local SCRIPT_PAGE_URL = "https://rscripts.net/script/murino-horror-script-KwMX?__cf_chl_tk=um2QULuk7Dl8XrXjggu09B_j2j_S_KT7Rr9MgZk7fEo-1785074912-1.0.1.1-j7N6Lw0ei._5KjdY5Y44BdyYdI1V9yAr3JyGK2onBeI"
+
+local CurrentLanguage = "en"
+
+local function fetchAvailableLanguages()
+    local languages = {}
+    local apiUrl = string.format("https://api.github.com/repos/%s/%s/contents/lang?ref=%s", GITHUB_USER, GITHUB_REPO, GITHUB_BRANCH)
+    
+    local success, response = pcall(function() return game:HttpGet(apiUrl) end)
+    if success and response then
+        local ok, data = pcall(function() return HttpService:JSONDecode(response) end)
+        if ok and type(data) == "table" then
+            for _, file in ipairs(data) do
+                local langCode = file.name:match("([^%.]+)%.json$")
+                if langCode then table.insert(languages, langCode) end
+            end
+        end
+    end
+    if #languages == 0 then table.insert(languages, "ru") end
+    return languages
+end
+
+local function fetchTranslationPack(langCode)
+    local rawUrl = string.format("https://raw.githubusercontent.com/%s/%s/%s/lang/%s.json", GITHUB_USER, GITHUB_REPO, GITHUB_BRANCH, langCode)
+    local success, response = pcall(function() return game:HttpGet(rawUrl) end)
+    if success and response then
+        local ok, parsed = pcall(function() return HttpService:JSONDecode(response) end)
+        if ok then return parsed end
+    end
+    return nil
+end
+
+-- ===== RAYFIELD INIT =====
 local Rayfield = loadstring(game:HttpGet("https://sirius.menu/gen2"))()
 
 local Window = Rayfield:CreateWindow({
@@ -25,13 +64,39 @@ local Window = Rayfield:CreateWindow({
     }
 })
 
--- Create tabs (Home — первая вкладка)
+-- Create tabs
 local TabHome = Window:CreateTab({ name = "Home", icon = 4483362458 })
 local TabFarm = Window:CreateTab({ name = "Farm", icon = 4483362458 })
 local TabPlayer = Window:CreateTab({ name = "Player", icon = 4483362458 })
 local TabVisual = Window:CreateTab({ name = "Visual", icon = 4483362458 })
 local TabMonster = Window:CreateTab({ name = "Monster", icon = 4483362458 })
 local TabSettings = Window:CreateTab({ name = "Settings", icon = 4483362458 })
+
+local tabsMap = {
+    Home = TabHome,
+    Farm = TabFarm,
+    Player = TabPlayer,
+    Visual = TabVisual,
+    Monster = TabMonster,
+    Settings = TabSettings
+}
+
+local function applyTabTranslations(pack)
+    if not pack then return end
+    for originalName, tabObj in pairs(tabsMap) do
+        if pack[originalName] and tabObj.SetTitle then
+            tabObj:SetTitle(pack[originalName])
+        end
+    end
+end
+
+-- Register Initial Language
+local initialPack = fetchTranslationPack(CurrentLanguage)
+if initialPack then
+    Window:RegisterTranslations({ [CurrentLanguage] = initialPack })
+    Window:SetLocale(CurrentLanguage)
+    applyTabTranslations(initialPack)
+end
 
 -- ===== SERVICES =====
 local plr = game:GetService("Players").LocalPlayer
@@ -51,7 +116,8 @@ local uiElements = {
     NoclipKeybind = nil,
     ArturTpKeybind = nil,
     AutoTeleportToggle = nil,
-    ConfigDropdown = nil
+    ConfigDropdown = nil,
+    LangDropdown = nil
 }
 
 -- ===== EXECUTOR ENVIRONMENT HELPERS =====
@@ -107,8 +173,6 @@ local arturTpKeybind = "F"
 local autoExecOnTeleport = false
 local teleportConnection = nil
 local teleportFired = false
-local RAW_SCRIPT_URL = "https://raw.githubusercontent.com/NikolayKot02/Script-for-murino-horror/refs/heads/main/Skriptmurino.lua"
-local SCRIPT_PAGE_URL = "https://rscripts.net/script/murino-horror-script-KwMX?__cf_chl_tk=um2QULuk7Dl8XrXjggu09B_j2j_S_KT7Rr9MgZk7fEo-1785074912-1.0.1.1-j7N6Lw0ei._5KjdY5Y44BdyYdI1V9yAr3JyGK2onBeI"
 
 -- Config Variables
 local configFolder = "SwillHub_Configs"
@@ -497,12 +561,12 @@ end
 
 -- ===== INTERFACE - HOME TAB =====
 TabHome:CreateSection({ name = "Information: Welcome to Murino Horror Hub!" })
-TabHome:CreateSection({ name = "Author: NikolayKot | Team: Swill Way" })
+TabHome:CreateSection({ name = "Author: NikolayKot" })
 
 TabHome:CreateSection({ name = "Links" })
 
 TabHome:CreateButton({
-    name = "Open Script Webpage (Copy Link)",
+    name = "Original script",
     callback = function()
         if set_clipboard then
             set_clipboard(SCRIPT_PAGE_URL)
@@ -671,7 +735,8 @@ local function getCurrentConfigData()
         HolySpiceIntensity = holySpiceIntensity,
         AntiArturEnabled = antiArturEnabled,
         FarmEnabled = farming,
-        AutoExecOnTeleport = autoExecOnTeleport
+        AutoExecOnTeleport = autoExecOnTeleport,
+        Language = CurrentLanguage
     }
 end
 
@@ -770,6 +835,34 @@ local function deleteConfigFile(cfgName)
 end
 
 -- ===== INTERFACE - SETTINGS TAB =====
+TabSettings:CreateSection({ name = "Language Settings" })
+
+local availableLangs = fetchAvailableLanguages()
+
+uiElements.LangDropdown = TabSettings:CreateDropdown({
+    name = "Select Language",
+    options = availableLangs,
+    currentOption = { CurrentLanguage },
+    multipleOptions = false,
+    callback = function(Option)
+        local selectedLang = type(Option) == "table" and Option[1] or Option
+        if selectedLang then
+            local langData = fetchTranslationPack(selectedLang)
+            if langData then
+                Window:RegisterTranslations({ [selectedLang] = langData })
+                Window:SetLocale(selectedLang)
+                applyTabTranslations(langData)
+                CurrentLanguage = selectedLang
+                Window:Notify({
+                    title = "Language Updated",
+                    content = "Language changed to: " .. selectedLang,
+                    duration = 3
+                })
+            end
+        end
+    end,
+})
+
 TabSettings:CreateSection({ name = "Keybinds & Automation" })
 
 uiElements.NoclipKeybind = TabSettings:CreateKeybind({
