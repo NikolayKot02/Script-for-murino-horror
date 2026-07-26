@@ -2,10 +2,16 @@
     SWILL CORE // MEGA HUB WITH INSANE HOLY SPICE + ANTI ARTUR
     Full feature set + INSANE Holy Spice + Auto Artur TP + Config System + Unload Script
     Author: denchik_klasn (Modified by NikolayKot)
-    original script: loadstring(game:HttpGet("https://pastefy.app/gop6pus0/raw"))()
     Team: Swill Way
     Version: 2026 Refactor (Rayfield Gen2 Compliant)
 ]]
+
+-- ===== PREVENT DUPLICATE EXECUTION =====
+if _G.SwillHubLoaded then
+    warn("[Swill Hub] Script is already running!")
+    return
+end
+_G.SwillHubLoaded = true
 
 local HttpService = game:GetService("HttpService")
 local Rayfield = loadstring(game:HttpGet("https://sirius.menu/gen2"))()
@@ -95,6 +101,7 @@ local arturTpKeybind = "F"
 -- Auto Exec on Teleport
 local autoExecOnTeleport = false
 local teleportConnection = nil
+local teleportFired = false
 local RAW_SCRIPT_URL = "https://raw.githubusercontent.com/NikolayKot02/Script-for-murino-horror/refs/heads/main/Skriptmurino.lua"
 
 -- Config Variables
@@ -438,7 +445,8 @@ local function setupAutoTeleportExec()
     if teleportConnection then teleportConnection:Disconnect() end
     
     teleportConnection = plr.OnTeleport:Connect(function()
-        if autoExecOnTeleport and isScriptRunning then
+        if autoExecOnTeleport and isScriptRunning and not teleportFired then
+            teleportFired = true
             if queue_tp then
                 local codeToQueue = string.format([[
                     repeat task.wait() until game:IsLoaded()
@@ -466,6 +474,7 @@ end
 -- ===== UNLOAD / DISABLE SCRIPT =====
 local function unloadScript()
     isScriptRunning = false
+    _G.SwillHubLoaded = nil
     
     stopFarm()
     stopWalkspeed()
@@ -681,7 +690,6 @@ local function applyConfigData(data)
         uiElements.AutoTeleportToggle:Set(data.AutoExecOnTeleport) 
     end
 
-    -- Гарантированный запуск визуалов с задержкой в 1 кадр
     task.defer(function()
         if data.FullbrightEnabled then
             fullbrightEnabled = true
@@ -886,7 +894,6 @@ setupAutoTeleportExec()
 task.spawn(function()
     task.wait(0.5)
     
-    -- Восстанавливаем состояние Auto-exec
     local stateFile = configFolder .. "/autoexec_state.txt"
     if isfile and readfile and isfile(stateFile) then
         local savedState = readfile(stateFile)
@@ -907,9 +914,7 @@ end)
 
 -- ===== WELCOME =====
 task.wait(1)
-script = "https://rscripts.net/script/murino-horror-script-KwMX?__cf_chl_tk=um2QULuk7Dl8XrXjggu09B_j2j_S_KT7Rr9MgZk7fEo-1785074912-1.0.1.1-j7N6Lw0ei._5KjdY5Y44BdyYdI1V9yAr3JyGK2onBeI"
 print("=================================")
 print("Script for Murino horror")
 print("Author: NikolayKot")
-print("Original script:",script)
 print("=================================")
