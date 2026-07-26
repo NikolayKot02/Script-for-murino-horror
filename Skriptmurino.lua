@@ -2,6 +2,7 @@
     SWILL CORE // MEGA HUB WITH INSANE HOLY SPICE + ANTI ARTUR
     Full feature set + INSANE Holy Spice + Auto Artur TP + Config System + Unload Script
     Author: denchik_klasn (Modified by NikolayKot)
+    original script: loadstring(game:HttpGet("https://pastefy.app/gop6pus0/raw"))()
     Team: Swill Way
     Version: 2026 Refactor (Rayfield Gen2 Compliant)
 ]]
@@ -24,7 +25,8 @@ local Window = Rayfield:CreateWindow({
     }
 })
 
--- Create tabs
+-- Create tabs (Home — первая вкладка)
+local TabHome = Window:CreateTab({ name = "Home", icon = 4483362458 })
 local TabFarm = Window:CreateTab({ name = "Farm", icon = 4483362458 })
 local TabPlayer = Window:CreateTab({ name = "Player", icon = 4483362458 })
 local TabVisual = Window:CreateTab({ name = "Visual", icon = 4483362458 })
@@ -56,6 +58,9 @@ local uiElements = {
 local env = getgenv and getgenv() or _G
 local fire_prompt = env.fireproximityprompt or fireproximityprompt
 local queue_tp = env.queue_on_teleport or (env.syn and env.syn.queue_on_teleport) or (env.fluxus and env.fluxus.queue_on_teleport)
+local set_clipboard = env.setclipboard 
+    or setclipboard 
+    or (env.syn and env.syn.write_clipboard)
 
 -- ===== VARIABLES =====
 local isScriptRunning = true
@@ -103,6 +108,7 @@ local autoExecOnTeleport = false
 local teleportConnection = nil
 local teleportFired = false
 local RAW_SCRIPT_URL = "https://raw.githubusercontent.com/NikolayKot02/Script-for-murino-horror/refs/heads/main/Skriptmurino.lua"
+local SCRIPT_PAGE_URL = "https://rscripts.net/script/murino-horror-script-KwMX?__cf_chl_tk=um2QULuk7Dl8XrXjggu09B_j2j_S_KT7Rr9MgZk7fEo-1785074912-1.0.1.1-j7N6Lw0ei._5KjdY5Y44BdyYdI1V9yAr3JyGK2onBeI"
 
 -- Config Variables
 local configFolder = "SwillHub_Configs"
@@ -488,6 +494,32 @@ local function unloadScript()
     Window:Unload()
     print("SWILL MEGA HUB - Script successfully disabled and unloaded.")
 end
+
+-- ===== INTERFACE - HOME TAB =====
+TabHome:CreateSection({ name = "Information: Welcome to Murino Horror Hub!" })
+TabHome:CreateSection({ name = "Author: NikolayKot | Team: Swill Way" })
+
+TabHome:CreateSection({ name = "Links" })
+
+TabHome:CreateButton({
+    name = "Open Script Webpage (Copy Link)",
+    callback = function()
+        if set_clipboard then
+            set_clipboard(SCRIPT_PAGE_URL)
+            Window:Notify({
+                title = "Link Copied!",
+                content = "Script page link has been copied to your clipboard.",
+                duration = 4
+            })
+        else
+            Window:Notify({
+                title = "Error",
+                content = "Your executor does not support clipboard copying.",
+                duration = 4
+            })
+        end
+    end,
+})
 
 -- ===== INTERFACE - FARM TAB =====
 TabFarm:CreateSection({ name = "Coin Farm" })
@@ -917,4 +949,5 @@ task.wait(1)
 print("=================================")
 print("Script for Murino horror")
 print("Author: NikolayKot")
+print("Original script:", SCRIPT_PAGE_URL)
 print("=================================")
