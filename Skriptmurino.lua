@@ -7,6 +7,18 @@
     Version: 2026 Refactor (Rayfield Gen2 Compliant)
 ]]
 
+-- ===== CHECK LOADER AUTHORIZATION =====
+local AUTH_TOKEN = "SWILL_SECURE_TOKEN_998811"
+
+local env = getgenv and getgenv() or _G
+if env._EXECUTOR_TOKEN ~= AUTH_TOKEN then
+    warn("[Swill Hub] Access Denied: Direct execution is prohibited! Run the official Loader instead.")
+    return
+end
+
+-- Clear the token immediately after verification for security
+env._EXECUTOR_TOKEN = nil
+
 -- ===== PREVENT DUPLICATE EXECUTION =====
 if _G.SwillHubLoaded then
     warn("[Swill Hub] Script is already running!")
@@ -20,7 +32,7 @@ local HttpService = game:GetService("HttpService")
 local GITHUB_USER = "NikolayKot02"
 local GITHUB_REPO = "Script-for-murino-horror"
 local GITHUB_BRANCH = "main"
-local RAW_SCRIPT_URL = "https://raw.githubusercontent.com/NikolayKot02/Script-for-murino-horror/refs/heads/main/Skriptmurino.lua"
+local RAW_SCRIPT_URL = "https://raw.githubusercontent.com/NikolayKot02/Script-for-murino-horror/refs/heads/main/LOADER.lua"
 local SCRIPT_PAGE_URL = "https://rscripts.net/script/murino-horror-script-KwMX?__cf_chl_tk=um2QULuk7Dl8XrXjggu09B_j2j_S_KT7Rr9MgZk7fEo-1785074912-1.0.1.1-j7N6Lw0ei._5KjdY5Y44BdyYdI1V9yAr3JyGK2onBeI"
 
 local CurrentLanguage = "en"
@@ -121,7 +133,6 @@ local uiElements = {
 }
 
 -- ===== EXECUTOR ENVIRONMENT HELPERS =====
-local env = getgenv and getgenv() or _G
 local fire_prompt = env.fireproximityprompt or fireproximityprompt
 local queue_tp = env.queue_on_teleport or (env.syn and env.syn.queue_on_teleport) or (env.fluxus and env.fluxus.queue_on_teleport)
 local set_clipboard = env.setclipboard 
@@ -518,8 +529,11 @@ local function setupAutoTeleportExec()
         if autoExecOnTeleport and isScriptRunning and not teleportFired then
             teleportFired = true
             if queue_tp then
+                -- При автозапуске при телепортации передается токен авторизации
                 local codeToQueue = string.format([[
                     repeat task.wait() until game:IsLoaded()
+                    local env = getgenv and getgenv() or _G
+                    env._EXECUTOR_TOKEN = "%s"
                     local success, scriptContent = pcall(function()
                         return game:HttpGet("%s")
                     end)
@@ -533,7 +547,7 @@ local function setupAutoTeleportExec()
                     else
                         warn("Failed to download script on teleport!")
                     end
-                ]], RAW_SCRIPT_URL)
+                ]], AUTH_TOKEN, RAW_SCRIPT_URL)
                 
                 queue_tp(codeToQueue)
             end
