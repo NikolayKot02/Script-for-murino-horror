@@ -1,40 +1,49 @@
 {
-  "Farm": "Ферма",
+  "Home": "Главная",
+  "Farm": "Фарм",
   "Player": "Игрок",
-  "Visual": "Визуалы",
+  "Visual": "Визуал",
   "Monster": "Монстры",
   "Settings": "Настройки",
-
+  
+  "Information: Welcome to Murino Horror Hub!": "Информация: Добро пожаловать в Murino Horror Hub!",
+  "Author: NikolayKot | Team: Swill Way": "Автор: NikolayKot | Команда: Swill Way",
+  "Links": "Ссылки",
+  "Open Script Webpage (Copy Link)": "Открыть страницу скрипта (Скопировать ссылку)",
+  
   "Coin Farm": "Фарм Монет",
   "ON/OFF FARM": "ВКЛ/ВЫКЛ ФАРМ",
-  "SCAN COINS": "СКАН МОНЕТ",
-  "TEST: collect one": "ТЕСТ: Собрать одну",
+  "SCAN COINS": "СКАНИРОВАТЬ МОНЕТЫ",
+  "TEST: collect one": "ТЕСТ: собрать одну",
   "RESET COUNTER": "СБРОСИТЬ СЧЕТЧИК",
-
+  
   "WalkSpeed": "Скорость Ходьбы",
   "ON/OFF WALKSPEED": "ВКЛ/ВЫКЛ СКОРОСТЬ",
   "Speed": "Скорость",
-  "Noclip": "Ноклип",
+  "Noclip": "Ноклип (Сквозь стены)",
   "ON/OFF NOCLIP": "ВКЛ/ВЫКЛ НОКЛИП",
-
+  
   "Lighting": "Освещение",
-  "FULLBRIGHT": "ФУЛЛБРАЙТ",
+  "FULLBRIGHT": "ЯРКИЙ СВЕТ (Fullbright)",
   "HOLY SPICE (INSANE)": "HOLY SPICE (БЕЗУМИЕ)",
+  "Intensity": "Интенсивность",
   "RESET LIGHTING": "СБРОСИТЬ ОСВЕЩЕНИЕ",
-
-  "Monster Alerts & Anti Artur": "Оповещения и Анти-Артур",
-  "Monster Spawn Alerts": "Оповещения о спавне",
-  "Tracks Workspace for Artur, Drun, antonChigur, Fog": "Отслеживает Workspace на появление Артура, Друнов, Антона Чигура и Тумана",
-  "ANTI ARTUR": "АНТИ АРТУР",
-  "Auto teleport to Artur and press E when appears": "Авто-телепорт к Артуру и нажатие E при спавне",
+  
+  "Anti Artur Controls": "Управление Анти-Артуром",
+  "ANTI ARTUR": "АНТИ-АРТУР",
+  "Auto teleport to Artur and press E when appears in Hitboxes": "Авто-телепорт к Артуру и нажатие E при появлении в Hitboxes",
   "TEST: Teleport to Artur": "ТЕСТ: Телепорт к Артуру",
-
-  "Keybinds & Automation": "Бинды и Автоматизация",
+  
+  "Language Settings": "Настройки Языка",
+  "Select Language": "Выбрать Язык",
+  "Keybinds & Automation": "Клавиши и Автоматизация",
   "Noclip Toggle Key": "Клавиша Ноклипа",
   "Artur Teleport Key": "Клавиша Телепорта к Артуру",
-  "Auto-exec on Teleport": "Авто-выполнение при телепорте",
+  "Auto-exec on Teleport": "Авто-выполнение при Телепорте",
+  "Re-executes the script when teleported between games/places": "Перезапускает скрипт при переходе между серверами/плейсами",
+  
   "Config Management": "Управление Конфигами",
-  "Config Name Input": "Имя Конфига",
+  "Config Name Input": "Введите имя конфига",
   "Create config": "Создать конфиг",
   "Select Config": "Выбрать конфиг",
   "Load config": "Загрузить конфиг",
@@ -43,8 +52,7 @@
   "Refresh list": "Обновить список",
   "Set as autoload": "Сделать автозагружаемым",
   "Reset autoload": "Сбросить автозагрузку",
+  
   "Unload Script": "Выгрузка Скрипта",
-  "Destroy Script / Unload": "Уничтожить скрипт / Выгрузить",
-  "Language Settings": "Настройки Языка",
-  "Select Language": "Выбор Языка"
+  "Destroy Script / Unload": "Уничтожить скрипт / Выгрузить"
 }
