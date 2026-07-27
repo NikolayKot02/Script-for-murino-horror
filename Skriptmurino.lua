@@ -1,6 +1,6 @@
 --[[
     SWILL CORE // MEGA HUB WITH INSANE HOLY SPICE + ANTI ARTUR + GITHUB LOCALIZATION
-    Full feature set + INSANE Holy Spice + Auto Artur TP + Config System + OPTIMIZED ESP (Coins, Axe, Bandage, Flashlight, Artur, AntonChigur, Drun) + Unload Script
+    Full feature set + INSANE Holy Spice + Auto Artur TP + Config System + OPTIMIZED ESP (Coins, Axe, Bandage, Flashlight, Artur, AntonChigur, Drun) + Fly Feature + Unload Script
     Author: denchik_klasn (Modified by NikolayKot)
     original script: loadstring(game:HttpGet("https://pastefy.app/gop6pus0/raw"))()
     Team: Swill Way
@@ -89,7 +89,7 @@ local CurrentLanguage = detectSystemLanguage(availableLangs)
 local Rayfield = loadstring(game:HttpGet("https://sirius.menu/gen2"))()
 
 local Window = Rayfield:CreateWindow({
-    name = "SCRIPT FOR MURINO HORROR",
+    name = "SKRIPT FOR MURINO HORROR",
     subtitle = "by NikolayKot",
     configuration = {
         autoSave = false
@@ -150,11 +150,15 @@ local uiElements = {
     WalkSpeedToggle = nil,
     SpeedSlider = nil,
     NoclipToggle = nil,
+    FlyToggle = nil,
+    FlySpeedSlider = nil,
     FullbrightToggle = nil,
     HolySpiceToggle = nil,
     IntensitySlider = nil,
     AntiArturToggle = nil,
+    MonsterNotifyToggle = nil,
     NoclipKeybind = nil,
+    FlyKeybind = nil,
     ArturTpKeybind = nil,
     AutoTeleportToggle = nil,
     ConfigDropdown = nil,
@@ -203,6 +207,11 @@ local drunEspEnabled = false
 local drunEspThread = nil
 local activeDrunEspHighlights = {}
 
+-- Monster Spawn Notifications
+local monsterNotifyEnabled = false
+local monsterNotifyConnection = nil
+local trackedMonsters = {}
+
 -- WalkSpeed
 local walkspeed = 16
 local walkspeedEnabled = false
@@ -210,6 +219,11 @@ local walkspeedConnection = nil
 
 -- Noclip
 local noclipEnabled = false
+
+-- Fly
+local flyEnabled = false
+local flySpeed = 50
+local flyConnection = nil
 
 -- Fullbright
 local fullbrightEnabled = false
@@ -236,6 +250,7 @@ local isTeleportingToArtur = false
 
 -- Keybinds
 local noclipKeybind = "N"
+local flyKeybind = "X"
 local arturTpKeybind = "F"
 
 -- Auto Exec on Teleport
@@ -253,6 +268,64 @@ if isfolder and makefolder then
     if not isfolder(configFolder) then
         makefolder(configFolder)
     end
+end
+
+-- ===== MONSTER NOTIFICATIONS LOGIC =====
+local function checkAndNotifyMonster(child)
+    if not monsterNotifyEnabled or not child then return end
+    if trackedMonsters[child] then return end
+
+    local name = child.Name
+    if name == "AntonChigur" or name == "Anton" then
+        trackedMonsters[child] = true
+        Window:Notify({
+            title = "⚠️ Monster Spawned!",
+            content = "AntonChigur has spawned!",
+            duration = 5
+        })
+    elseif name == "Rush" then
+        trackedMonsters[child] = true
+        Window:Notify({
+            title = "⚠️ Monster Spawned!",
+            content = "Rush has spawned!",
+            duration = 5
+        })
+    elseif string.match(name, "^Drun%d+$") then
+        trackedMonsters[child] = true
+        Window:Notify({
+            title = "⚠️ Monster Spawned!",
+            content = name .. " has spawned!",
+            duration = 5
+        })
+    end
+end
+
+local function startMonsterNotifications()
+    if monsterNotifyEnabled then return end
+    monsterNotifyEnabled = true
+    trackedMonsters = {}
+
+    for _, obj in pairs(workspace:GetDescendants()) do
+        local name = obj.Name
+        if name == "AntonChigur" or name == "Anton" or name == "Rush" or string.match(name, "^Drun%d+$") then
+            trackedMonsters[obj] = true
+        end
+    end
+
+    monsterNotifyConnection = workspace.DescendantAdded:Connect(function(child)
+        if monsterNotifyEnabled and isScriptRunning then
+            checkAndNotifyMonster(child)
+        end
+    end)
+end
+
+local function stopMonsterNotifications()
+    monsterNotifyEnabled = false
+    if monsterNotifyConnection then
+        monsterNotifyConnection:Disconnect()
+        monsterNotifyConnection = nil
+    end
+    trackedMonsters = {}
 end
 
 -- ===== WALKSPEED =====
@@ -335,6 +408,106 @@ local function toggleNoclip(state)
     
     if uiElements.NoclipToggle and uiElements.NoclipToggle.Set then 
         uiElements.NoclipToggle:Set(noclipEnabled) 
+    end
+end
+
+-- ===== FLY LOGIC =====
+local function startFly()
+    if flyEnabled then return end
+    flyEnabled = true
+
+    local char = plr.Character or plr.CharacterAdded:Wait()
+    local root = char:WaitForChild("HumanoidRootPart")
+    local humanoid = char:FindFirstChildOfClass("Humanoid")
+
+    local bv = Instance.new("BodyVelocity")
+    bv.Name = "SwillFlyBV"
+    bv.MaxForce = Vector3.new(1e9, 1e9, 1e9)
+    bv.Velocity = Vector3.zero
+    bv.Parent = root
+
+    local bg = Instance.new("BodyGyro")
+    bg.Name = "SwillFlyBG"
+    bg.MaxTorque = Vector3.new(1e9, 1e9, 1e9)
+    bg.P = 9e4
+    bg.CFrame = root.CFrame
+    bg.Parent = root
+
+    if humanoid then humanoid.PlatformStand = true end
+
+    flyConnection = runService.RenderStepped:Connect(function()
+        if not flyEnabled or not isScriptRunning or not root or not root.Parent then
+            if bv then bv:Destroy() end
+            if bg then bg:Destroy() end
+            if humanoid then humanoid.PlatformStand = false end
+            if flyConnection then flyConnection:Disconnect() end
+            return
+        end
+
+        local camera = workspace.CurrentCamera
+        local moveDir = Vector3.zero
+
+        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.W) then
+            moveDir = moveDir + camera.CFrame.LookVector
+        end
+        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.S) then
+            moveDir = moveDir - camera.CFrame.LookVector
+        end
+        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.A) then
+            moveDir = moveDir - camera.CFrame.RightVector
+        end
+        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.D) then
+            moveDir = moveDir + camera.CFrame.RightVector
+        end
+        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.Space) then
+            moveDir = moveDir + Vector3.new(0, 1, 0)
+        end
+        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.LeftShift) then
+            moveDir = moveDir - Vector3.new(0, 1, 0)
+        end
+
+        if moveDir.Magnitude > 0 then
+            bv.Velocity = moveDir.Unit * flySpeed
+        else
+            bv.Velocity = Vector3.zero
+        end
+        bg.CFrame = camera.CFrame
+    end)
+end
+
+local function stopFly()
+    flyEnabled = false
+    if flyConnection then
+        flyConnection:Disconnect()
+        flyConnection = nil
+    end
+    local char = plr.Character
+    if char then
+        local root = char:FindFirstChild("HumanoidRootPart")
+        if root then
+            if root:FindFirstChild("SwillFlyBV") then root.SwillFlyBV:Destroy() end
+            if root:FindFirstChild("SwillFlyBG") then root.SwillFlyBG:Destroy() end
+        end
+        local humanoid = char:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid.PlatformStand = false
+        end
+    end
+end
+
+local function toggleFly(state)
+    if state == nil then
+        state = not flyEnabled
+    end
+
+    if state then
+        startFly()
+    else
+        stopFly()
+    end
+
+    if uiElements.FlyToggle and uiElements.FlyToggle.Set then
+        uiElements.FlyToggle:Set(flyEnabled)
     end
 end
 
@@ -547,7 +720,7 @@ local function startCoinsEsp()
     coinsEspThread = task.spawn(function()
         while coinsEspEnabled and isScriptRunning do
             updateCoinsEsp()
-            task.wait(1)
+            task.wait(10)
         end
     end)
 end
@@ -614,7 +787,7 @@ local function startAxeEsp()
     axeEspThread = task.spawn(function()
         while axeEspEnabled and isScriptRunning do
             updateAxeEsp()
-            task.wait(1)
+            task.wait(10)
         end
     end)
 end
@@ -681,7 +854,7 @@ local function startBandageEsp()
     bandageEspThread = task.spawn(function()
         while bandageEspEnabled and isScriptRunning do
             updateBandageEsp()
-            task.wait(1)
+            task.wait(10)
         end
     end)
 end
@@ -748,7 +921,7 @@ local function startFlashlightEsp()
     flashlightEspThread = task.spawn(function()
         while flashlightEspEnabled and isScriptRunning do
             updateFlashlightEsp()
-            task.wait(1)
+            task.wait(10)
         end
     end)
 end
@@ -821,7 +994,7 @@ local function startArturEsp()
     arturEspThread = task.spawn(function()
         while arturEspEnabled and isScriptRunning do
             updateArturEsp()
-            task.wait(1)
+            task.wait(10)
         end
     end)
 end
@@ -888,7 +1061,7 @@ local function startAntonChigurEsp()
     antonChigurEspThread = task.spawn(function()
         while antonChigurEspEnabled and isScriptRunning do
             updateAntonChigurEsp()
-            task.wait(1)
+            task.wait(10)
         end
     end)
 end
@@ -955,7 +1128,7 @@ local function startDrunEsp()
     drunEspThread = task.spawn(function()
         while drunEspEnabled and isScriptRunning do
             updateDrunEsp()
-            task.wait(1)
+            task.wait(10)
         end
     end)
 end
@@ -1091,8 +1264,10 @@ local function unloadScript()
     stopArturEsp()
     stopAntonChigurEsp()
     stopDrunEsp()
+    stopMonsterNotifications()
     stopWalkspeed()
     stopNoclip()
+    stopFly()
     stopFullbright()
     stopHolySpice()
     stopAntiArtur()
@@ -1272,6 +1447,25 @@ uiElements.NoclipToggle = TabPlayer:CreateToggle({
     callback = function(v) toggleNoclip(v) end,
 })
 
+TabPlayer:CreateSection({ name = "Fly" })
+
+uiElements.FlyToggle = TabPlayer:CreateToggle({
+    name = "ON/OFF FLY",
+    currentValue = false,
+    callback = function(v) toggleFly(v) end,
+})
+
+uiElements.FlySpeedSlider = TabPlayer:CreateSlider({
+    name = "Fly Speed",
+    range = {10, 300},
+    increment = 5,
+    suffix = "speed",
+    currentValue = 50,
+    callback = function(v)
+        flySpeed = v
+    end,
+})
+
 -- ===== INTERFACE - VISUAL TAB =====
 TabVisual:CreateSection({ name = "Lighting" })
 
@@ -1332,6 +1526,17 @@ uiElements.AntiArturToggle = TabMonster:CreateToggle({
 
 TabMonster:CreateButton({ name = "TEST: Teleport to Artur", callback = manualTeleportToArtur })
 
+TabMonster:CreateSection({ name = "Monster Detector" })
+
+uiElements.MonsterNotifyToggle = TabMonster:CreateToggle({
+    name = "Monster Spawn Notifications",
+    description = "Sends UI notifications when AntonChigur, Rush, or Drun spawn",
+    currentValue = false,
+    callback = function(v)
+        if v then startMonsterNotifications() else stopMonsterNotifications() end
+    end,
+})
+
 -- ===== CONFIG SYSTEM FUNCTIONS =====
 local function getConfigFileList()
     local list = {}
@@ -1352,12 +1557,16 @@ local function getCurrentConfigData()
         WalkSpeed = walkspeed,
         WalkSpeedEnabled = walkspeedEnabled,
         NoclipEnabled = noclipEnabled,
+        FlyEnabled = flyEnabled,
+        FlySpeed = flySpeed,
         NoclipKeybind = noclipKeybind,
+        FlyKeybind = flyKeybind,
         ArturTpKeybind = arturTpKeybind,
         FullbrightEnabled = fullbrightEnabled,
         HolySpiceEnabled = holySpiceEnabled,
         HolySpiceIntensity = holySpiceIntensity,
         AntiArturEnabled = antiArturEnabled,
+        MonsterNotifyEnabled = monsterNotifyEnabled,
         FarmEnabled = farming,
         CoinsEspEnabled = coinsEspEnabled,
         AxeEspEnabled = axeEspEnabled,
@@ -1384,6 +1593,14 @@ local function applyConfigData(data)
     
     if data.NoclipEnabled ~= nil and uiElements.NoclipToggle then
         uiElements.NoclipToggle:Set(data.NoclipEnabled)
+    end
+
+    if data.FlyEnabled ~= nil and uiElements.FlyToggle then
+        uiElements.FlyToggle:Set(data.FlyEnabled)
+    end
+
+    if data.FlySpeed ~= nil and uiElements.FlySpeedSlider then
+        uiElements.FlySpeedSlider:Set(data.FlySpeed)
     end
 
     if data.CoinsEspEnabled ~= nil and uiElements.CoinsEspToggle then
@@ -1413,9 +1630,17 @@ local function applyConfigData(data)
     if data.DrunEspEnabled ~= nil and uiElements.DrunEspToggle then
         uiElements.DrunEspToggle:Set(data.DrunEspEnabled)
     end
+
+    if data.MonsterNotifyEnabled ~= nil and uiElements.MonsterNotifyToggle then
+        uiElements.MonsterNotifyToggle:Set(data.MonsterNotifyEnabled)
+    end
     
     if data.NoclipKeybind ~= nil and uiElements.NoclipKeybind then 
         uiElements.NoclipKeybind:Set(data.NoclipKeybind) 
+    end
+
+    if data.FlyKeybind ~= nil and uiElements.FlyKeybind then 
+        uiElements.FlyKeybind:Set(data.FlyKeybind) 
     end
     
     if data.ArturTpKeybind ~= nil and uiElements.ArturTpKeybind then 
@@ -1510,6 +1735,24 @@ uiElements.NoclipKeybind = TabSettings:CreateKeybind({
         
         if isScriptRunning then
             toggleNoclip()
+        end
+    end,
+})
+
+uiElements.FlyKeybind = TabSettings:CreateKeybind({
+    name = "Fly Toggle Key",
+    default = Enum.KeyCode.X,
+    holdToInteract = false,
+    callOnKeycode = true,
+    callback = function(key)
+        if typeof(key) == "EnumItem" then
+            flyKeybind = key.Name
+        else
+            flyKeybind = tostring(key):gsub("Enum.KeyCode.", "")
+        end
+        
+        if isScriptRunning then
+            toggleFly()
         end
     end,
 })
