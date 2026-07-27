@@ -1,47 +1,75 @@
 {
   "Home": "Home",
   "Farm": "Farm",
+  "ESP": "ESP",
   "Player": "Player",
   "Visual": "Visual",
   "Monster": "Monster",
   "Settings": "Settings",
-  
+
   "Information: Welcome to Murino Horror Hub!": "Information: Welcome to Murino Horror Hub!",
   "Author: NikolayKot": "Author: NikolayKot",
   "Links": "Links",
   "Original script": "Original script",
-  
+
   "Coin Farm": "Coin Farm",
   "ON/OFF FARM": "ON/OFF FARM",
   "SCAN COINS": "SCAN COINS",
   "TEST: collect one": "TEST: collect one",
   "RESET COUNTER": "RESET COUNTER",
-  
+
+  "Item Visual Highlights": "Item Visual Highlights",
+  "Coins ESP": "Coins ESP",
+  "Highlights all coins on the map through walls": "Highlights all coins on the map through walls",
+  "Axe ESP": "Axe ESP",
+  "Highlights all axes on the map through walls": "Highlights all axes on the map through walls",
+  "Bandage ESP": "Bandage ESP",
+  "Highlights all bandages/medkits on the map through walls": "Highlights all bandages/medkits on the map through walls",
+  "Flashlight ESP": "Flashlight ESP",
+  "Highlights all flashlights on the map through walls": "Highlights all flashlights on the map through walls",
+
+  "Monster & World Visual Highlights": "Monster & World Visual Highlights",
+  "Artur ESP": "Artur ESP",
+  "Highlights Artur monster through walls in Red": "Highlights Artur monster through walls in Red",
+  "AntonChigur ESP": "AntonChigur ESP",
+  "Highlights Anton Chigur monster through walls in Purple": "Highlights Anton Chigur monster through walls in Purple",
+  "Drun ESP": "Drun ESP",
+  "Highlights Drun monsters (Drun1 - Drun6) through walls in Orange": "Highlights Drun monsters (Drun1 - Drun6) through walls in Orange",
+
   "WalkSpeed": "WalkSpeed",
   "ON/OFF WALKSPEED": "ON/OFF WALKSPEED",
   "Speed": "Speed",
   "Noclip": "Noclip",
   "ON/OFF NOCLIP": "ON/OFF NOCLIP",
-  
+
+  "Fly": "Fly",
+  "ON/OFF FLY": "ON/OFF FLY",
+  "Fly Speed": "Fly Speed",
+
   "Lighting": "Lighting",
   "FULLBRIGHT": "FULLBRIGHT",
   "HOLY SPICE (INSANE)": "HOLY SPICE (INSANE)",
   "Intensity": "Intensity",
   "RESET LIGHTING": "RESET LIGHTING",
-  
+
   "Anti Artur Controls": "Anti Artur Controls",
   "ANTI ARTUR": "ANTI ARTUR",
   "Auto teleport to Artur and press E when appears in Hitboxes": "Auto teleport to Artur and press E when appears in Hitboxes",
   "TEST: Teleport to Artur": "TEST: Teleport to Artur",
-  
+
+  "Monster Detector": "Monster Detector",
+  "Monster Spawn Notifications": "Monster Spawn Notifications",
+  "Sends UI notifications when AntonChigur, Rush, or Drun spawn": "Sends UI notifications when AntonChigur, Rush, or Drun spawn",
+
   "Language Settings": "Language Settings",
   "Select Language": "Select Language",
   "Keybinds & Automation": "Keybinds & Automation",
   "Noclip Toggle Key": "Noclip Toggle Key",
+  "Fly Toggle Key": "Fly Toggle Key",
   "Artur Teleport Key": "Artur Teleport Key",
   "Auto-exec on Teleport": "Auto-exec on Teleport",
   "Re-executes the script when teleported between games/places": "Re-executes the script when teleported between games/places",
-  
+
   "Config Management": "Config Management",
   "Config Name Input": "Enter config name...",
   "Create config": "Create config",
@@ -52,7 +80,7 @@
   "Refresh list": "Refresh list",
   "Set as autoload": "Set as autoload",
   "Reset autoload": "Reset autoload",
-  
+
   "Unload Script": "Unload Script",
   "Destroy Script / Unload": "Destroy Script / Unload"
 }
