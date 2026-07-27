@@ -7,10 +7,22 @@
     Version: 2026 Refactor (Rayfield Gen2 Compliant)
 ]]
 
+local configFolder = "SwillHub_Configs"
+local env = getgenv and getgenv() or _G
+
+-- ===== CHECK AUTO-EXEC ON TELEPORT STATE PRE-CHECK =====
+local autoexecFile = configFolder .. "/autoexec_state.txt"
+if isfile and readfile and isfile(autoexecFile) then
+    local state = readfile(autoexecFile)
+    if state == "true" then
+        -- Автоматически выдаём авторизацию, если включен Auto-exec
+        env._EXECUTOR_TOKEN = "SWILL_SECURE_TOKEN_998811"
+    end
+end
+
 -- ===== CHECK LOADER AUTHORIZATION =====
 local AUTH_TOKEN = "SWILL_SECURE_TOKEN_998811"
 
-local env = getgenv and getgenv() or _G
 if env._EXECUTOR_TOKEN ~= AUTH_TOKEN then
     warn("[Swill Hub] Access Denied: Direct execution is prohibited! Run the official Loader instead.")
     return
@@ -33,7 +45,7 @@ local LocalizationService = game:GetService("LocalizationService")
 local GITHUB_USER = "NikolayKot02"
 local GITHUB_REPO = "Script-for-murino-horror"
 local GITHUB_BRANCH = "main"
-local RAW_SCRIPT_URL = "https://raw.githubusercontent.com/NikolayKot02/Script-for-murino-horror/refs/heads/main/LOADER.lua"
+local RAW_SCRIPT_URL = "https://raw.githubusercontent.com/NikolayKot02/Script-for-murino-horror/refs/heads/main/Skriptmurino.lua"
 local SCRIPT_PAGE_URL = "https://rscripts.net/script/murino-horror-script-KwMX?__cf_chl_tk=um2QULuk7Dl8XrXjggu09B_j2j_S_KT7Rr9MgZk7fEo-1785074912-1.0.1.1-j7N6Lw0ei._5KjdY5Y44BdyYdI1V9yAr3JyGK2onBeI"
 
 local function fetchAvailableLanguages()
@@ -259,7 +271,6 @@ local teleportConnection = nil
 local teleportFired = false
 
 -- Config Variables
-local configFolder = "SwillHub_Configs"
 local selectedConfig = "---"
 local currentConfigNameInput = ""
 
@@ -1636,14 +1647,17 @@ local function applyConfigData(data)
     end
     
     if data.NoclipKeybind ~= nil and uiElements.NoclipKeybind then 
+        noclipKeybind = data.NoclipKeybind
         uiElements.NoclipKeybind:Set(data.NoclipKeybind) 
     end
 
     if data.FlyKeybind ~= nil and uiElements.FlyKeybind then 
+        flyKeybind = data.FlyKeybind
         uiElements.FlyKeybind:Set(data.FlyKeybind) 
     end
     
     if data.ArturTpKeybind ~= nil and uiElements.ArturTpKeybind then 
+        arturTpKeybind = data.ArturTpKeybind
         uiElements.ArturTpKeybind:Set(data.ArturTpKeybind) 
     end
     
