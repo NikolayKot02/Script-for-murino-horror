@@ -1,6 +1,6 @@
 --[[
     SWILL CORE // MEGA HUB WITH INSANE HOLY SPICE + ANTI ARTUR + GITHUB LOCALIZATION
-    Full feature set + INSANE Holy Spice + Auto Artur TP + Config System + Unload Script
+    Full feature set + INSANE Holy Spice + Auto Artur TP + Config System + OPTIMIZED ESP (Coins, Axe, Bandage, Flashlight, Artur, AntonChigur, Drun) + Unload Script
     Author: denchik_klasn (Modified by NikolayKot)
     original script: loadstring(game:HttpGet("https://pastefy.app/gop6pus0/raw"))()
     Team: Swill Way
@@ -27,6 +27,7 @@ end
 _G.SwillHubLoaded = true
 
 local HttpService = game:GetService("HttpService")
+local LocalizationService = game:GetService("LocalizationService")
 
 -- ===== GITHUB & LOCALIZATION CONFIG =====
 local GITHUB_USER = "NikolayKot02"
@@ -34,8 +35,6 @@ local GITHUB_REPO = "Script-for-murino-horror"
 local GITHUB_BRANCH = "main"
 local RAW_SCRIPT_URL = "https://raw.githubusercontent.com/NikolayKot02/Script-for-murino-horror/refs/heads/main/LOADER.lua"
 local SCRIPT_PAGE_URL = "https://rscripts.net/script/murino-horror-script-KwMX?__cf_chl_tk=um2QULuk7Dl8XrXjggu09B_j2j_S_KT7Rr9MgZk7fEo-1785074912-1.0.1.1-j7N6Lw0ei._5KjdY5Y44BdyYdI1V9yAr3JyGK2onBeI"
-
-local CurrentLanguage = "en"
 
 local function fetchAvailableLanguages()
     local languages = {}
@@ -65,6 +64,27 @@ local function fetchTranslationPack(langCode)
     return nil
 end
 
+-- ===== DETECT SYSTEM LANGUAGE =====
+local function detectSystemLanguage(availableLangs)
+    local locale = "en-us"
+    pcall(function()
+        locale = LocalizationService.RobloxLocaleId or "en-us"
+    end)
+    
+    local primaryLang = locale:sub(1, 2):lower()
+    
+    for _, lang in ipairs(availableLangs) do
+        if lang:lower() == primaryLang then
+            return lang
+        end
+    end
+    
+    return "en"
+end
+
+local availableLangs = fetchAvailableLanguages()
+local CurrentLanguage = detectSystemLanguage(availableLangs)
+
 -- ===== RAYFIELD INIT =====
 local Rayfield = loadstring(game:HttpGet("https://sirius.menu/gen2"))()
 
@@ -79,6 +99,7 @@ local Window = Rayfield:CreateWindow({
 -- Create tabs
 local TabHome = Window:CreateTab({ name = "Home", icon = 4483362458 })
 local TabFarm = Window:CreateTab({ name = "Farm", icon = 4483362458 })
+local TabEsp = Window:CreateTab({ name = "ESP", icon = 4483362458 })
 local TabPlayer = Window:CreateTab({ name = "Player", icon = 4483362458 })
 local TabVisual = Window:CreateTab({ name = "Visual", icon = 4483362458 })
 local TabMonster = Window:CreateTab({ name = "Monster", icon = 4483362458 })
@@ -87,6 +108,7 @@ local TabSettings = Window:CreateTab({ name = "Settings", icon = 4483362458 })
 local tabsMap = {
     Home = TabHome,
     Farm = TabFarm,
+    ESP = TabEsp,
     Player = TabPlayer,
     Visual = TabVisual,
     Monster = TabMonster,
@@ -118,6 +140,13 @@ local lighting = game:GetService("Lighting")
 -- ===== UI ELEMENTS REFERENCES =====
 local uiElements = {
     FarmToggle = nil,
+    CoinsEspToggle = nil,
+    AxeEspToggle = nil,
+    BandageEspToggle = nil,
+    FlashlightEspToggle = nil,
+    ArturEspToggle = nil,
+    AntonChigurEspToggle = nil,
+    DrunEspToggle = nil,
     WalkSpeedToggle = nil,
     SpeedSlider = nil,
     NoclipToggle = nil,
@@ -144,6 +173,35 @@ local isScriptRunning = true
 local farming = false
 local collected = 0
 local farmThread = nil
+
+-- ESP States & Data
+local coinsEspEnabled = false
+local coinsEspThread = nil
+local activeCoinsEspHighlights = {}
+
+local axeEspEnabled = false
+local axeEspThread = nil
+local activeAxeEspHighlights = {}
+
+local bandageEspEnabled = false
+local bandageEspThread = nil
+local activeBandageEspHighlights = {}
+
+local flashlightEspEnabled = false
+local flashlightEspThread = nil
+local activeFlashlightEspHighlights = {}
+
+local arturEspEnabled = false
+local arturEspThread = nil
+local activeArturEspHighlights = {}
+
+local antonChigurEspEnabled = false
+local antonChigurEspThread = nil
+local activeAntonChigurEspHighlights = {}
+
+local drunEspEnabled = false
+local drunEspThread = nil
+local activeDrunEspHighlights = {}
 
 -- WalkSpeed
 local walkspeed = 16
@@ -442,6 +500,472 @@ local function stopFarm()
     if farmThread then farmThread = nil end
 end
 
+-- ===== COINS ESP LOGIC =====
+local function clearCoinsEsp()
+    for model, highlight in pairs(activeCoinsEspHighlights) do
+        if highlight and highlight.Parent then highlight:Destroy() end
+    end
+    table.clear(activeCoinsEspHighlights)
+end
+
+local function updateCoinsEsp()
+    if not coinsEspEnabled or not isScriptRunning then return end
+    local coins = findCoins()
+    local currentModels = {}
+
+    for _, coinData in ipairs(coins) do
+        local model = coinData.model
+        if model and model.Parent then
+            currentModels[model] = true
+            if not activeCoinsEspHighlights[model] then
+                local highlight = Instance.new("Highlight")
+                highlight.Name = "SwillCoinEsp"
+                highlight.Adornee = model
+                highlight.FillColor = Color3.fromRGB(255, 215, 0)
+                highlight.FillTransparency = 0.4
+                highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+                highlight.OutlineTransparency = 0
+                highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                highlight.Parent = model
+
+                activeCoinsEspHighlights[model] = highlight
+            end
+        end
+    end
+
+    for model, highlight in pairs(activeCoinsEspHighlights) do
+        if not currentModels[model] then
+            if highlight and highlight.Parent then highlight:Destroy() end
+            activeCoinsEspHighlights[model] = nil
+        end
+    end
+end
+
+local function startCoinsEsp()
+    if coinsEspEnabled then return end
+    coinsEspEnabled = true
+    coinsEspThread = task.spawn(function()
+        while coinsEspEnabled and isScriptRunning do
+            updateCoinsEsp()
+            task.wait(1)
+        end
+    end)
+end
+
+local function stopCoinsEsp()
+    coinsEspEnabled = false
+    if coinsEspThread then coinsEspThread = nil end
+    clearCoinsEsp()
+end
+
+-- ===== AXE ESP LOGIC =====
+local function findAxes()
+    local axes = {}
+    for _, item in pairs(workspace:GetDescendants()) do
+        if item.Name == "Axe" and (item:IsA("Model") or item:IsA("BasePart") or item:IsA("Tool")) then
+            table.insert(axes, item)
+        end
+    end
+    return axes
+end
+
+local function clearAxeEsp()
+    for item, highlight in pairs(activeAxeEspHighlights) do
+        if highlight and highlight.Parent then highlight:Destroy() end
+    end
+    table.clear(activeAxeEspHighlights)
+end
+
+local function updateAxeEsp()
+    if not axeEspEnabled or not isScriptRunning then return end
+    local axes = findAxes()
+    local currentItems = {}
+
+    for _, item in ipairs(axes) do
+        if item and item.Parent then
+            currentItems[item] = true
+            if not activeAxeEspHighlights[item] then
+                local highlight = Instance.new("Highlight")
+                highlight.Name = "SwillAxeEsp"
+                highlight.Adornee = item
+                highlight.FillColor = Color3.fromRGB(0, 191, 255)
+                highlight.FillTransparency = 0.4
+                highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+                highlight.OutlineTransparency = 0
+                highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                highlight.Parent = item
+
+                activeAxeEspHighlights[item] = highlight
+            end
+        end
+    end
+
+    for item, highlight in pairs(activeAxeEspHighlights) do
+        if not currentItems[item] then
+            if highlight and highlight.Parent then highlight:Destroy() end
+            activeAxeEspHighlights[item] = nil
+        end
+    end
+end
+
+local function startAxeEsp()
+    if axeEspEnabled then return end
+    axeEspEnabled = true
+    axeEspThread = task.spawn(function()
+        while axeEspEnabled and isScriptRunning do
+            updateAxeEsp()
+            task.wait(1)
+        end
+    end)
+end
+
+local function stopAxeEsp()
+    axeEspEnabled = false
+    if axeEspThread then axeEspThread = nil end
+    clearAxeEsp()
+end
+
+-- ===== BANDAGE ESP LOGIC =====
+local function findBandages()
+    local bandages = {}
+    for _, item in pairs(workspace:GetDescendants()) do
+        if (item.Name == "Bandage" or item.Name == "Medkit") and (item:IsA("Model") or item:IsA("BasePart") or item:IsA("Tool")) then
+            table.insert(bandages, item)
+        end
+    end
+    return bandages
+end
+
+local function clearBandageEsp()
+    for item, highlight in pairs(activeBandageEspHighlights) do
+        if highlight and highlight.Parent then highlight:Destroy() end
+    end
+    table.clear(activeBandageEspHighlights)
+end
+
+local function updateBandageEsp()
+    if not bandageEspEnabled or not isScriptRunning then return end
+    local items = findBandages()
+    local currentItems = {}
+
+    for _, item in ipairs(items) do
+        if item and item.Parent then
+            currentItems[item] = true
+            if not activeBandageEspHighlights[item] then
+                local highlight = Instance.new("Highlight")
+                highlight.Name = "SwillBandageEsp"
+                highlight.Adornee = item
+                highlight.FillColor = Color3.fromRGB(0, 255, 127)
+                highlight.FillTransparency = 0.4
+                highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+                highlight.OutlineTransparency = 0
+                highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                highlight.Parent = item
+
+                activeBandageEspHighlights[item] = highlight
+            end
+        end
+    end
+
+    for item, highlight in pairs(activeBandageEspHighlights) do
+        if not currentItems[item] then
+            if highlight and highlight.Parent then highlight:Destroy() end
+            activeBandageEspHighlights[item] = nil
+        end
+    end
+end
+
+local function startBandageEsp()
+    if bandageEspEnabled then return end
+    bandageEspEnabled = true
+    bandageEspThread = task.spawn(function()
+        while bandageEspEnabled and isScriptRunning do
+            updateBandageEsp()
+            task.wait(1)
+        end
+    end)
+end
+
+local function stopBandageEsp()
+    bandageEspEnabled = false
+    if bandageEspThread then bandageEspThread = nil end
+    clearBandageEsp()
+end
+
+-- ===== FLASHLIGHT ESP LOGIC =====
+local function findFlashlights()
+    local flashlights = {}
+    for _, item in pairs(workspace:GetDescendants()) do
+        if item.Name == "Flashlight" and (item:IsA("Model") or item:IsA("BasePart") or item:IsA("Tool")) then
+            table.insert(flashlights, item)
+        end
+    end
+    return flashlights
+end
+
+local function clearFlashlightEsp()
+    for item, highlight in pairs(activeFlashlightEspHighlights) do
+        if highlight and highlight.Parent then highlight:Destroy() end
+    end
+    table.clear(activeFlashlightEspHighlights)
+end
+
+local function updateFlashlightEsp()
+    if not flashlightEspEnabled or not isScriptRunning then return end
+    local items = findFlashlights()
+    local currentItems = {}
+
+    for _, item in ipairs(items) do
+        if item and item.Parent then
+            currentItems[item] = true
+            if not activeFlashlightEspHighlights[item] then
+                local highlight = Instance.new("Highlight")
+                highlight.Name = "SwillFlashlightEsp"
+                highlight.Adornee = item
+                highlight.FillColor = Color3.fromRGB(255, 255, 0)
+                highlight.FillTransparency = 0.4
+                highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+                highlight.OutlineTransparency = 0
+                highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                highlight.Parent = item
+
+                activeFlashlightEspHighlights[item] = highlight
+            end
+        end
+    end
+
+    for item, highlight in pairs(activeFlashlightEspHighlights) do
+        if not currentItems[item] then
+            if highlight and highlight.Parent then highlight:Destroy() end
+            activeFlashlightEspHighlights[item] = nil
+        end
+    end
+end
+
+local function startFlashlightEsp()
+    if flashlightEspEnabled then return end
+    flashlightEspEnabled = true
+    flashlightEspThread = task.spawn(function()
+        while flashlightEspEnabled and isScriptRunning do
+            updateFlashlightEsp()
+            task.wait(1)
+        end
+    end)
+end
+
+local function stopFlashlightEsp()
+    flashlightEspEnabled = false
+    if flashlightEspThread then flashlightEspThread = nil end
+    clearFlashlightEsp()
+end
+
+-- ===== ARTUR ESP LOGIC =====
+local function findArturObjects()
+    local arturs = {}
+    local hitboxes = workspace:FindFirstChild("Hitboxes")
+    if hitboxes then
+        for _, child in pairs(hitboxes:GetChildren()) do
+            if child.Name == "Artur" then table.insert(arturs, child) end
+        end
+    end
+    for _, obj in pairs(workspace:GetChildren()) do
+        if obj.Name == "Artur" and (obj:IsA("Model") or obj:IsA("BasePart")) then
+            if not table.find(arturs, obj) then table.insert(arturs, obj) end
+        end
+    end
+    return arturs
+end
+
+local function clearArturEsp()
+    for item, highlight in pairs(activeArturEspHighlights) do
+        if highlight and highlight.Parent then highlight:Destroy() end
+    end
+    table.clear(activeArturEspHighlights)
+end
+
+local function updateArturEsp()
+    if not arturEspEnabled or not isScriptRunning then return end
+    local arturs = findArturObjects()
+    local currentItems = {}
+
+    for _, item in ipairs(arturs) do
+        if item and item.Parent then
+            currentItems[item] = true
+            if not activeArturEspHighlights[item] then
+                local highlight = Instance.new("Highlight")
+                highlight.Name = "SwillArturEsp"
+                highlight.Adornee = item
+                highlight.FillColor = Color3.fromRGB(255, 0, 0)
+                highlight.FillTransparency = 0.3
+                highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+                highlight.OutlineTransparency = 0
+                highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                highlight.Parent = item
+
+                activeArturEspHighlights[item] = highlight
+            end
+        end
+    end
+
+    for item, highlight in pairs(activeArturEspHighlights) do
+        if not currentItems[item] then
+            if highlight and highlight.Parent then highlight:Destroy() end
+            activeArturEspHighlights[item] = nil
+        end
+    end
+end
+
+local function startArturEsp()
+    if arturEspEnabled then return end
+    arturEspEnabled = true
+    arturEspThread = task.spawn(function()
+        while arturEspEnabled and isScriptRunning do
+            updateArturEsp()
+            task.wait(1)
+        end
+    end)
+end
+
+local function stopArturEsp()
+    arturEspEnabled = false
+    if arturEspThread then arturEspThread = nil end
+    clearArturEsp()
+end
+
+-- ===== ANTON CHIGUR ESP LOGIC =====
+local function findAntonChigurObjects()
+    local antonList = {}
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if (obj.Name == "AntonChigur" or obj.Name == "Anton") and (obj:IsA("Model") or obj:IsA("BasePart")) then
+            table.insert(antonList, obj)
+        end
+    end
+    return antonList
+end
+
+local function clearAntonChigurEsp()
+    for item, highlight in pairs(activeAntonChigurEspHighlights) do
+        if highlight and highlight.Parent then highlight:Destroy() end
+    end
+    table.clear(activeAntonChigurEspHighlights)
+end
+
+local function updateAntonChigurEsp()
+    if not antonChigurEspEnabled or not isScriptRunning then return end
+    local antonList = findAntonChigurObjects()
+    local currentItems = {}
+
+    for _, item in ipairs(antonList) do
+        if item and item.Parent then
+            currentItems[item] = true
+            if not activeAntonChigurEspHighlights[item] then
+                local highlight = Instance.new("Highlight")
+                highlight.Name = "SwillAntonEsp"
+                highlight.Adornee = item
+                highlight.FillColor = Color3.fromRGB(138, 43, 226)
+                highlight.FillTransparency = 0.3
+                highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+                highlight.OutlineTransparency = 0
+                highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                highlight.Parent = item
+
+                activeAntonChigurEspHighlights[item] = highlight
+            end
+        end
+    end
+
+    for item, highlight in pairs(activeAntonChigurEspHighlights) do
+        if not currentItems[item] then
+            if highlight and highlight.Parent then highlight:Destroy() end
+            activeAntonChigurEspHighlights[item] = nil
+        end
+    end
+end
+
+local function startAntonChigurEsp()
+    if antonChigurEspEnabled then return end
+    antonChigurEspEnabled = true
+    antonChigurEspThread = task.spawn(function()
+        while antonChigurEspEnabled and isScriptRunning do
+            updateAntonChigurEsp()
+            task.wait(1)
+        end
+    end)
+end
+
+local function stopAntonChigurEsp()
+    antonChigurEspEnabled = false
+    if antonChigurEspThread then antonChigurEspThread = nil end
+    clearAntonChigurEsp()
+end
+
+-- ===== DRUN (1-6) ESP LOGIC =====
+local function findDrunObjects()
+    local drunList = {}
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if string.match(obj.Name, "^Drun%d+$") and (obj:IsA("Model") or obj:IsA("BasePart")) then
+            table.insert(drunList, obj)
+        end
+    end
+    return drunList
+end
+
+local function clearDrunEsp()
+    for item, highlight in pairs(activeDrunEspHighlights) do
+        if highlight and highlight.Parent then highlight:Destroy() end
+    end
+    table.clear(activeDrunEspHighlights)
+end
+
+local function updateDrunEsp()
+    if not drunEspEnabled or not isScriptRunning then return end
+    local drunList = findDrunObjects()
+    local currentItems = {}
+
+    for _, item in ipairs(drunList) do
+        if item and item.Parent then
+            currentItems[item] = true
+            if not activeDrunEspHighlights[item] then
+                local highlight = Instance.new("Highlight")
+                highlight.Name = "SwillDrunEsp"
+                highlight.Adornee = item
+                highlight.FillColor = Color3.fromRGB(255, 140, 0)
+                highlight.FillTransparency = 0.3
+                highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+                highlight.OutlineTransparency = 0
+                highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                highlight.Parent = item
+
+                activeDrunEspHighlights[item] = highlight
+            end
+        end
+    end
+
+    for item, highlight in pairs(activeDrunEspHighlights) do
+        if not currentItems[item] then
+            if highlight and highlight.Parent then highlight:Destroy() end
+            activeDrunEspHighlights[item] = nil
+        end
+    end
+end
+
+local function startDrunEsp()
+    if drunEspEnabled then return end
+    drunEspEnabled = true
+    drunEspThread = task.spawn(function()
+        while drunEspEnabled and isScriptRunning do
+            updateDrunEsp()
+            task.wait(1)
+        end
+    end)
+end
+
+local function stopDrunEsp()
+    drunEspEnabled = false
+    if drunEspThread then drunEspThread = nil end
+    clearDrunEsp()
+end
+
 -- ===== ANTI ARTUR =====
 local function findArtur()
     local hitboxes = workspace:FindFirstChild("Hitboxes")
@@ -529,7 +1053,6 @@ local function setupAutoTeleportExec()
         if autoExecOnTeleport and isScriptRunning and not teleportFired then
             teleportFired = true
             if queue_tp then
-                -- При автозапуске при телепортации передается токен авторизации
                 local codeToQueue = string.format([[
                     repeat task.wait() until game:IsLoaded()
                     local env = getgenv and getgenv() or _G
@@ -561,6 +1084,13 @@ local function unloadScript()
     _G.SwillHubLoaded = nil
     
     stopFarm()
+    stopCoinsEsp()
+    stopAxeEsp()
+    stopBandageEsp()
+    stopFlashlightEsp()
+    stopArturEsp()
+    stopAntonChigurEsp()
+    stopDrunEsp()
     stopWalkspeed()
     stopNoclip()
     stopFullbright()
@@ -576,6 +1106,32 @@ end
 -- ===== INTERFACE - HOME TAB =====
 TabHome:CreateSection({ name = "Information: Welcome to Murino Horror Hub!" })
 TabHome:CreateSection({ name = "Author: NikolayKot" })
+
+TabHome:CreateSection({ name = "Language Settings" })
+
+uiElements.LangDropdown = TabHome:CreateDropdown({
+    name = "Select Language",
+    options = availableLangs,
+    currentOption = { CurrentLanguage },
+    multipleOptions = false,
+    callback = function(Option)
+        local selectedLang = type(Option) == "table" and Option[1] or Option
+        if selectedLang then
+            local langData = fetchTranslationPack(selectedLang)
+            if langData then
+                Window:RegisterTranslations({ [selectedLang] = langData })
+                Window:SetLocale(selectedLang)
+                applyTabTranslations(langData)
+                CurrentLanguage = selectedLang
+                Window:Notify({
+                    title = "Language Updated",
+                    content = "Language changed to: " .. selectedLang,
+                    duration = 3
+                })
+            end
+        end
+    end,
+})
 
 TabHome:CreateSection({ name = "Links" })
 
@@ -629,6 +1185,60 @@ TabFarm:CreateButton({
 TabFarm:CreateButton({ 
     name = "RESET COUNTER", 
     callback = function() collected = 0 end 
+})
+
+-- ===== INTERFACE - ESP TAB =====
+TabEsp:CreateSection({ name = "Item Visual Highlights" })
+
+uiElements.CoinsEspToggle = TabEsp:CreateToggle({
+    name = "Coins ESP",
+    description = "Highlights all coins on the map through walls",
+    currentValue = false,
+    callback = function(v) if v then startCoinsEsp() else stopCoinsEsp() end end,
+})
+
+uiElements.AxeEspToggle = TabEsp:CreateToggle({
+    name = "Axe ESP",
+    description = "Highlights all axes on the map through walls",
+    currentValue = false,
+    callback = function(v) if v then startAxeEsp() else stopAxeEsp() end end,
+})
+
+uiElements.BandageEspToggle = TabEsp:CreateToggle({
+    name = "Bandage ESP",
+    description = "Highlights all bandages/medkits on the map through walls",
+    currentValue = false,
+    callback = function(v) if v then startBandageEsp() else stopBandageEsp() end end,
+})
+
+uiElements.FlashlightEspToggle = TabEsp:CreateToggle({
+    name = "Flashlight ESP",
+    description = "Highlights all flashlights on the map through walls",
+    currentValue = false,
+    callback = function(v) if v then startFlashlightEsp() else stopFlashlightEsp() end end,
+})
+
+TabEsp:CreateSection({ name = "Monster & World Visual Highlights" })
+
+uiElements.ArturEspToggle = TabEsp:CreateToggle({
+    name = "Artur ESP",
+    description = "Highlights Artur monster through walls in Red",
+    currentValue = false,
+    callback = function(v) if v then startArturEsp() else stopArturEsp() end end,
+})
+
+uiElements.AntonChigurEspToggle = TabEsp:CreateToggle({
+    name = "AntonChigur ESP",
+    description = "Highlights Anton Chigur monster through walls in Purple",
+    currentValue = false,
+    callback = function(v) if v then startAntonChigurEsp() else stopAntonChigurEsp() end end,
+})
+
+uiElements.DrunEspToggle = TabEsp:CreateToggle({
+    name = "Drun ESP",
+    description = "Highlights Drun monsters (Drun1 - Drun6) through walls in Orange",
+    currentValue = false,
+    callback = function(v) if v then startDrunEsp() else stopDrunEsp() end end,
 })
 
 -- ===== INTERFACE - PLAYER TAB =====
@@ -749,6 +1359,13 @@ local function getCurrentConfigData()
         HolySpiceIntensity = holySpiceIntensity,
         AntiArturEnabled = antiArturEnabled,
         FarmEnabled = farming,
+        CoinsEspEnabled = coinsEspEnabled,
+        AxeEspEnabled = axeEspEnabled,
+        BandageEspEnabled = bandageEspEnabled,
+        FlashlightEspEnabled = flashlightEspEnabled,
+        ArturEspEnabled = arturEspEnabled,
+        AntonChigurEspEnabled = antonChigurEspEnabled,
+        DrunEspEnabled = drunEspEnabled,
         AutoExecOnTeleport = autoExecOnTeleport,
         Language = CurrentLanguage
     }
@@ -767,6 +1384,34 @@ local function applyConfigData(data)
     
     if data.NoclipEnabled ~= nil and uiElements.NoclipToggle then
         uiElements.NoclipToggle:Set(data.NoclipEnabled)
+    end
+
+    if data.CoinsEspEnabled ~= nil and uiElements.CoinsEspToggle then
+        uiElements.CoinsEspToggle:Set(data.CoinsEspEnabled)
+    end
+
+    if data.AxeEspEnabled ~= nil and uiElements.AxeEspToggle then
+        uiElements.AxeEspToggle:Set(data.AxeEspEnabled)
+    end
+
+    if data.BandageEspEnabled ~= nil and uiElements.BandageEspToggle then
+        uiElements.BandageEspToggle:Set(data.BandageEspEnabled)
+    end
+
+    if data.FlashlightEspEnabled ~= nil and uiElements.FlashlightEspToggle then
+        uiElements.FlashlightEspToggle:Set(data.FlashlightEspEnabled)
+    end
+
+    if data.ArturEspEnabled ~= nil and uiElements.ArturEspToggle then
+        uiElements.ArturEspToggle:Set(data.ArturEspEnabled)
+    end
+
+    if data.AntonChigurEspEnabled ~= nil and uiElements.AntonChigurEspToggle then
+        uiElements.AntonChigurEspToggle:Set(data.AntonChigurEspEnabled)
+    end
+
+    if data.DrunEspEnabled ~= nil and uiElements.DrunEspToggle then
+        uiElements.DrunEspToggle:Set(data.DrunEspEnabled)
     end
     
     if data.NoclipKeybind ~= nil and uiElements.NoclipKeybind then 
@@ -849,34 +1494,6 @@ local function deleteConfigFile(cfgName)
 end
 
 -- ===== INTERFACE - SETTINGS TAB =====
-TabSettings:CreateSection({ name = "Language Settings" })
-
-local availableLangs = fetchAvailableLanguages()
-
-uiElements.LangDropdown = TabSettings:CreateDropdown({
-    name = "Select Language",
-    options = availableLangs,
-    currentOption = { CurrentLanguage },
-    multipleOptions = false,
-    callback = function(Option)
-        local selectedLang = type(Option) == "table" and Option[1] or Option
-        if selectedLang then
-            local langData = fetchTranslationPack(selectedLang)
-            if langData then
-                Window:RegisterTranslations({ [selectedLang] = langData })
-                Window:SetLocale(selectedLang)
-                applyTabTranslations(langData)
-                CurrentLanguage = selectedLang
-                Window:Notify({
-                    title = "Language Updated",
-                    content = "Language changed to: " .. selectedLang,
-                    duration = 3
-                })
-            end
-        end
-    end,
-})
-
 TabSettings:CreateSection({ name = "Keybinds & Automation" })
 
 uiElements.NoclipKeybind = TabSettings:CreateKeybind({
