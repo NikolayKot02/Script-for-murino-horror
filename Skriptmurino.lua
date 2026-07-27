@@ -720,7 +720,7 @@ local function startCoinsEsp()
     coinsEspThread = task.spawn(function()
         while coinsEspEnabled and isScriptRunning do
             updateCoinsEsp()
-            task.wait(10)
+            task.wait(7)
         end
     end)
 end
@@ -787,7 +787,7 @@ local function startAxeEsp()
     axeEspThread = task.spawn(function()
         while axeEspEnabled and isScriptRunning do
             updateAxeEsp()
-            task.wait(10)
+            task.wait(7)
         end
     end)
 end
@@ -854,7 +854,7 @@ local function startBandageEsp()
     bandageEspThread = task.spawn(function()
         while bandageEspEnabled and isScriptRunning do
             updateBandageEsp()
-            task.wait(10)
+            task.wait(7)
         end
     end)
 end
@@ -921,7 +921,7 @@ local function startFlashlightEsp()
     flashlightEspThread = task.spawn(function()
         while flashlightEspEnabled and isScriptRunning do
             updateFlashlightEsp()
-            task.wait(10)
+            task.wait(7)
         end
     end)
 end
@@ -994,7 +994,7 @@ local function startArturEsp()
     arturEspThread = task.spawn(function()
         while arturEspEnabled and isScriptRunning do
             updateArturEsp()
-            task.wait(10)
+            task.wait(7)
         end
     end)
 end
@@ -1061,7 +1061,7 @@ local function startAntonChigurEsp()
     antonChigurEspThread = task.spawn(function()
         while antonChigurEspEnabled and isScriptRunning do
             updateAntonChigurEsp()
-            task.wait(10)
+            task.wait(7)
         end
     end)
 end
@@ -1128,7 +1128,7 @@ local function startDrunEsp()
     drunEspThread = task.spawn(function()
         while drunEspEnabled and isScriptRunning do
             updateDrunEsp()
-            task.wait(10)
+            task.wait(7)
         end
     end)
 end
