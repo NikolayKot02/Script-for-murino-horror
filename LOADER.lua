@@ -1,17 +1,35 @@
--- ===== LOADER SCRIPT =====
-print("[Loader] Checking license & initializing...")
+--[[
+    SWILL CORE // OFFICIAL LOADER
+    Author: NikolayKot
+    Target: Script-for-murino-horror
+]]
 
--- Передаем права на запуск
-_G.SwillHubAllowed = true
-_G.SwillHubKey = "SWILL_SECURE_TOKEN_998811"
+local AUTH_TOKEN = "SWILL_SECURE_TOKEN_998811"
+local SCRIPT_URL = "https://raw.githubusercontent.com/NikolayKot02/Script-for-murino-horror/refs/heads/main/Skriptmurino.lua"
 
--- Загружаем и запускаем основной скрипт
-local scriptUrl = "https://raw.githubusercontent.com/NikolayKot02/Script-for-murino-horror/refs/heads/main/Skriptmurino.lua"
+local env = getgenv and getgenv() or _G
 
+print("[Swill Loader] Initializing execution process...")
+
+-- Устанавливаем токен авторизации для основного скрипта
+env._EXECUTOR_TOKEN = AUTH_TOKEN
+
+-- Скачиваем и выполняем основной код
 local success, result = pcall(function()
-    return loadstring(game:HttpGet(scriptUrl))()
+    local scriptContent = game:HttpGet(SCRIPT_URL)
+    local loadedFunc, err = loadstring(scriptContent)
+    
+    if not loadedFunc then
+        error("Syntax/Compile error: " .. tostring(err))
+    end
+    
+    return loadedFunc()
 end)
 
 if not success then
-    warn("[Loader] Failed to execute main script:", result)
+    -- В случае ошибки сбрасываем токен
+    env._EXECUTOR_TOKEN = nil
+    warn("[Swill Loader] Failed to load script. Reason:", result)
+else
+    print("[Swill Loader] Script loaded successfully!")
 end
