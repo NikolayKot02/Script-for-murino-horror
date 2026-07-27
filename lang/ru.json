@@ -1,49 +1,77 @@
 {
   "Home": "Главная",
   "Farm": "Фарм",
+  "ESP": "ESP",
   "Player": "Игрок",
-  "Visual": "Визуал",
-  "Monster": "Монстры",
+  "Visual": "Визуалы",
+  "Monster": "Монстр",
   "Settings": "Настройки",
-  
+
   "Information: Welcome to Murino Horror Hub!": "Информация: Добро пожаловать в Murino Horror Hub!",
   "Author: NikolayKot": "Автор: NikolayKot",
   "Links": "Ссылки",
   "Original script": "Оригинальный скрипт",
-  
-  "Coin Farm": "Фарм Монет",
+
+  "Coin Farm": "Фарм монет",
   "ON/OFF FARM": "ВКЛ/ВЫКЛ ФАРМ",
   "SCAN COINS": "СКАНИРОВАТЬ МОНЕТЫ",
   "TEST: collect one": "ТЕСТ: собрать одну",
-  "RESET COUNTER": "СБРОСИТЬ СЧЕТЧИК",
-  
-  "WalkSpeed": "Скорость Ходьбы",
+  "RESET COUNTER": "СБРОСИТЬ СЧЁТЧИК",
+
+  "Item Visual Highlights": "Подсветка предметов",
+  "Coins ESP": "ESP Монет",
+  "Highlights all coins on the map through walls": "Подсвечивает все монеты на карте сквозь стены",
+  "Axe ESP": "ESP Топора",
+  "Highlights all axes on the map through walls": "Подсвечивает все топоры на карте сквозь стены",
+  "Bandage ESP": "ESP Бинтов",
+  "Highlights all bandages/medkits on the map through walls": "Подсвечивает все бинты/аптечки на карте сквозь стены",
+  "Flashlight ESP": "ESP Фонариков",
+  "Highlights all flashlights on the map through walls": "Подсвечивает все фонарики на карте сквозь стены",
+
+  "Monster & World Visual Highlights": "Подсветка монстров и мира",
+  "Artur ESP": "ESP Артура",
+  "Highlights Artur monster through walls in Red": "Подсвечивает Артура сквозь стены красным цветом",
+  "AntonChigur ESP": "ESP Антона Чигура",
+  "Highlights Anton Chigur monster through walls in Purple": "Подсвечивает Антона Чигура сквозь стены фиолетовым цветом",
+  "Drun ESP": "ESP Друнов",
+  "Highlights Drun monsters (Drun1 - Drun6) through walls in Orange": "Подсвечивает монстров Drun (1-6) сквозь стены оранжевым цветом",
+
+  "WalkSpeed": "Скорость ходьбы",
   "ON/OFF WALKSPEED": "ВКЛ/ВЫКЛ СКОРОСТЬ",
   "Speed": "Скорость",
-  "Noclip": "Ноклип (Сквозь стены)",
+  "Noclip": "Ноклип",
   "ON/OFF NOCLIP": "ВКЛ/ВЫКЛ НОКЛИП",
-  
+
+  "Fly": "Полет (Fly)",
+  "ON/OFF FLY": "ВКЛ/ВЫКЛ ПОЛЕТ",
+  "Fly Speed": "Скорость полета",
+
   "Lighting": "Освещение",
-  "FULLBRIGHT": "ЯРКИЙ СВЕТ (Fullbright)",
+  "FULLBRIGHT": "ЯРКОСТЬ (FULLBRIGHT)",
   "HOLY SPICE (INSANE)": "HOLY SPICE (БЕЗУМИЕ)",
   "Intensity": "Интенсивность",
   "RESET LIGHTING": "СБРОСИТЬ ОСВЕЩЕНИЕ",
-  
+
   "Anti Artur Controls": "Управление Анти-Артуром",
   "ANTI ARTUR": "АНТИ-АРТУР",
-  "Auto teleport to Artur and press E when appears in Hitboxes": "Авто-телепорт к Артуру и нажатие E при появлении в Hitboxes",
+  "Auto teleport to Artur and press E when appears in Hitboxes": "Авто-телепорт к Артуру и нажатие E при появлении в хитбоксах",
   "TEST: Teleport to Artur": "ТЕСТ: Телепорт к Артуру",
-  
-  "Language Settings": "Настройки Языка",
-  "Select Language": "Выбрать Язык",
+
+  "Monster Detector": "Детектор монстров",
+  "Monster Spawn Notifications": "Уведомления о спавне монстров",
+  "Sends UI notifications when AntonChigur, Rush, or Drun spawn": "Отправляет уведомления в интерфейсе при спавне AntonChigur, Rush или Drun",
+
+  "Language Settings": "Настройки языка",
+  "Select Language": "Выберите язык",
   "Keybinds & Automation": "Клавиши и Автоматизация",
-  "Noclip Toggle Key": "Клавиша Ноклипа",
-  "Artur Teleport Key": "Клавиша Телепорта к Артуру",
-  "Auto-exec on Teleport": "Авто-выполнение при Телепорте",
-  "Re-executes the script when teleported between games/places": "Перезапускает скрипт при переходе между серверами/плейсами",
-  
-  "Config Management": "Управление Конфигами",
-  "Config Name Input": "Введите имя конфига",
+  "Noclip Toggle Key": "Клавиша переключения ноклипа",
+  "Fly Toggle Key": "Клавиша переключения полета",
+  "Artur Teleport Key": "Клавиша телепорта к Артуру",
+  "Auto-exec on Teleport": "Авто-выполнение при телепорте",
+  "Re-executes the script when teleported between games/places": "Перезапускает скрипт при телепортации между играми/местами",
+
+  "Config Management": "Управление конфигами",
+  "Config Name Input": "Введите название конфига...",
   "Create config": "Создать конфиг",
   "Select Config": "Выбрать конфиг",
   "Load config": "Загрузить конфиг",
@@ -52,7 +80,7 @@
   "Refresh list": "Обновить список",
   "Set as autoload": "Сделать автозагружаемым",
   "Reset autoload": "Сбросить автозагрузку",
-  
-  "Unload Script": "Выгрузка Скрипта",
+
+  "Unload Script": "Выгрузить скрипт",
   "Destroy Script / Unload": "Уничтожить скрипт / Выгрузить"
 }
