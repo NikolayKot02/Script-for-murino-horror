@@ -89,7 +89,7 @@ local CurrentLanguage = detectSystemLanguage(availableLangs)
 local Rayfield = loadstring(game:HttpGet("https://sirius.menu/gen2"))()
 
 local Window = Rayfield:CreateWindow({
-    name = "SKRIPT FOR MURINO HORROR",
+    name = "SCRIPT FOR MURINO HORROR",
     subtitle = "by NikolayKot",
     configuration = {
         autoSave = false
