@@ -1,21 +1,23 @@
 --[[
-    SWILL CORE // OFFICIAL ANIMATED LOADER (PHONE & PC)
+    SWILL CORE // OFFICIAL ANIMATED LOADER
     Author: NikolayKot
     Target: Script-for-murino-horror
 ]]
 
-local AUTH_TOKEN = "SWILL_SECURE_TOKEN_998811"
+-- ===== CONFIGURATION =====
+local LOBBY_PLACE_ID = 72500576874545 -- Укажите Place ID вашего Лобби
+local GAME_PLACE_ID = 82406104802807  -- Укажите Place ID игровой карты
 
--- Ссылки на ваши скрипты
+local AUTH_TOKEN = "SWILL_SECURE_TOKEN_998811"
 local PC_SCRIPT_URL = "https://raw.githubusercontent.com/NikolayKot02/Script-for-murino-horror/refs/heads/main/Skriptmurino.lua"
-local PHONE_SCRIPT_URL = "https://raw.githubusercontent.com/NikolayKot02/Script-for-murino-horror/refs/heads/main/Skriptmurino.lua" -- Укажите ссылку на мобильную версию
+local PHONE_SCRIPT_URL = "https://raw.githubusercontent.com/NikolayKot02/Script-for-murino-horror/refs/heads/main/Skriptmurino.lua" -- Ссылка на мобильную версию
 
 local env = getgenv and getgenv() or _G
 local CoreGui = game:GetService("CoreGui")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
--- Разблокировка курсора для удобного клика
+-- Разблокировка курсора
 UserInputService.MouseBehavior = Enum.MouseBehavior.Default
 
 -- ===== UI CONSTRUCTION =====
@@ -40,17 +42,45 @@ MainFrame.BorderSizePixel = 0
 MainFrame.ClipsDescendants = true
 MainFrame.Parent = ScreenGui
 
--- Скругление углов
 local UICorner = Instance.new("UICorner")
 UICorner.CornerRadius = UDim.new(0, 12)
 UICorner.Parent = MainFrame
 
--- Обводка рамки
 local UIStroke = Instance.new("UIStroke")
 UIStroke.Color = Color3.fromRGB(40, 40, 40)
 UIStroke.Thickness = 2
 UIStroke.Transparency = 1
 UIStroke.Parent = MainFrame
+
+-- Кнопка закрытия (Крестик X)
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Name = "CloseBtn"
+CloseBtn.AnchorPoint = Vector2.new(1, 0)
+CloseBtn.Position = UDim2.new(0.96, 0, 0.05, 0)
+CloseBtn.Size = UDim2.new(0, 26, 0, 26)
+CloseBtn.BackgroundTransparency = 1
+CloseBtn.Text = "X"
+CloseBtn.TextColor3 = Color3.fromRGB(150, 150, 160)
+CloseBtn.TextSize = 18
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.TextTransparency = 1
+CloseBtn.Parent = MainFrame
+
+CloseBtn.MouseEnter:Connect(function()
+    TweenService:Create(CloseBtn, TweenInfo.new(0.2), {TextColor3 = Color3.fromRGB(255, 60, 60)}):Play()
+end)
+CloseBtn.MouseLeave:Connect(function()
+    TweenService:Create(CloseBtn, TweenInfo.new(0.2), {TextColor3 = Color3.fromRGB(150, 150, 160)}):Play()
+end)
+
+CloseBtn.MouseButton1Click:Connect(function()
+    local tweenClose = TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.In)
+    TweenService:Create(MainFrame, tweenClose, {Size = UDim2.new(0, 0, 0, 220)}):Play()
+    TweenService:Create(UIStroke, tweenClose, {Transparency = 1}):Play()
+    TweenService:Create(CloseBtn, tweenClose, {TextTransparency = 1}):Play()
+    task.wait(0.4)
+    ScreenGui:Destroy()
+end)
 
 -- Текст: Script for murino horror
 local TitleText = Instance.new("TextLabel")
@@ -80,6 +110,21 @@ SubtitleText.Font = Enum.Font.GothamMedium
 SubtitleText.TextTransparency = 1
 SubtitleText.Parent = MainFrame
 
+-- Текст Предупреждения (Ошибки / Лобби)
+local StatusText = Instance.new("TextLabel")
+StatusText.Name = "StatusText"
+StatusText.AnchorPoint = Vector2.new(0.5, 0.5)
+StatusText.Position = UDim2.new(0.5, 0, 0.65, 0)
+StatusText.Size = UDim2.new(0.85, 0, 0, 40)
+StatusText.BackgroundTransparency = 1
+StatusText.Text = ""
+StatusText.TextColor3 = Color3.fromRGB(255, 75, 75)
+StatusText.TextSize = 16
+StatusText.Font = Enum.Font.GothamBold
+StatusText.TextWrapped = true
+StatusText.TextTransparency = 1
+StatusText.Parent = MainFrame
+
 -- ===== BUTTONS CONTAINER =====
 local ButtonsFrame = Instance.new("Frame")
 ButtonsFrame.Name = "ButtonsFrame"
@@ -87,9 +132,9 @@ ButtonsFrame.AnchorPoint = Vector2.new(0.5, 0.5)
 ButtonsFrame.Position = UDim2.new(0.5, 0, 0.65, 0)
 ButtonsFrame.Size = UDim2.new(0.8, 0, 0, 45)
 ButtonsFrame.BackgroundTransparency = 1
+ButtonsFrame.Visible = false
 ButtonsFrame.Parent = MainFrame
 
--- Функция создания кнопок
 local function createPlatformButton(name, text, position)
     local btn = Instance.new("TextButton")
     btn.Name = name
@@ -143,7 +188,6 @@ LoadingText.TextXAlignment = Enum.TextXAlignment.Right
 LoadingText.TextTransparency = 1
 LoadingText.Parent = LoadingFrame
 
--- Прыгающие точки
 local dots = {}
 for i = 1, 3 do
     local dot = Instance.new("TextLabel")
@@ -160,31 +204,39 @@ for i = 1, 3 do
     table.insert(dots, dot)
 end
 
--- ===== ANIMATION LOGIC =====
+-- ===== ANIMATION & PLACE CHECK LOGIC =====
 local tweenInfoFast = TweenInfo.new(0.6, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
 local tweenInfoBook = TweenInfo.new(1.0, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 
--- 1. Эффект открытия окна из центра
+-- Раскрытие окна из центра
 TweenService:Create(MainFrame, tweenInfoBook, {Size = UDim2.new(0, 440, 0, 220)}):Play()
 TweenService:Create(UIStroke, tweenInfoFast, {Transparency = 0}):Play()
 task.wait(0.4)
 
--- 2. Появление элементов
 TweenService:Create(TitleText, tweenInfoFast, {TextTransparency = 0}):Play()
 TweenService:Create(SubtitleText, tweenInfoFast, {TextTransparency = 0}):Play()
+TweenService:Create(CloseBtn, tweenInfoFast, {TextTransparency = 0}):Play()
 
-TweenService:Create(PhoneBtn, tweenInfoFast, {TextTransparency = 0, BackgroundTransparency = 0}):Play()
-TweenService:Create(PhoneStroke, tweenInfoFast, {Transparency = 0}):Play()
+-- ПРОВЕРКА МЕСТА (PLACE ID)
+local currentPlaceId = game.PlaceId
 
-TweenService:Create(PcBtn, tweenInfoFast, {TextTransparency = 0, BackgroundTransparency = 0}):Play()
-TweenService:Create(PcStroke, tweenInfoFast, {Transparency = 0}):Play()
+if currentPlaceId == LOBBY_PLACE_ID then
+    StatusText.Text = "Script does not work in the Lobby"
+    TweenService:Create(StatusText, tweenInfoFast, {TextTransparency = 0}):Play()
+elseif currentPlaceId == GAME_PLACE_ID then
+    -- Показываем кнопки выбора платформы
+    ButtonsFrame.Visible = true
+    TweenService:Create(PhoneBtn, tweenInfoFast, {TextTransparency = 0, BackgroundTransparency = 0}):Play()
+    TweenService:Create(PhoneStroke, tweenInfoFast, {Transparency = 0}):Play()
+    TweenService:Create(PcBtn, tweenInfoFast, {TextTransparency = 0, BackgroundTransparency = 0}):Play()
+    TweenService:Create(PcStroke, tweenInfoFast, {Transparency = 0}):Play()
+else
+    StatusText.Text = "This game is not supported"
+    TweenService:Create(StatusText, tweenInfoFast, {TextTransparency = 0}):Play()
+end
 
--- Функция запуска загрузки
-local selectedScriptUrl = nil
-
+-- Функция запуска загрузки после клика
 local function startLoadingProcess(scriptUrl)
-    selectedScriptUrl = scriptUrl
-
     -- Скрываем кнопки
     TweenService:Create(PhoneBtn, tweenInfoFast, {TextTransparency = 1, BackgroundTransparency = 1}):Play()
     TweenService:Create(PhoneStroke, tweenInfoFast, {Transparency = 1}):Play()
@@ -194,14 +246,13 @@ local function startLoadingProcess(scriptUrl)
     task.wait(0.3)
     ButtonsFrame.Visible = false
 
-    -- Показываем блок загрузки
+    -- Показываем запуск
     LoadingFrame.Visible = true
     TweenService:Create(LoadingText, tweenInfoFast, {TextTransparency = 0}):Play()
     for _, dot in ipairs(dots) do
         TweenService:Create(dot, tweenInfoFast, {TextTransparency = 0}):Play()
     end
 
-    -- Запуск анимации точек
     local isLoading = true
     task.spawn(function()
         while isLoading do
@@ -225,11 +276,9 @@ local function startLoadingProcess(scriptUrl)
         end
     end)
 
-    -- Таймер 10 секунд
-    task.wait(5)
+    task.wait(10)
     isLoading = false
 
-    -- Меняем текст на Done
     LoadingText.Text = "Done"
     for _, dot in ipairs(dots) do
         dot.Visible = false
@@ -237,12 +286,13 @@ local function startLoadingProcess(scriptUrl)
 
     task.wait(0.5)
 
-    -- Закрытие окна
+    -- Закрываем интерфейс
     local tweenClose = TweenInfo.new(0.7, Enum.EasingStyle.Quart, Enum.EasingDirection.In)
     TweenService:Create(MainFrame, tweenClose, {Size = UDim2.new(0, 0, 0, 220)}):Play()
     TweenService:Create(TitleText, tweenClose, {TextTransparency = 1}):Play()
     TweenService:Create(SubtitleText, tweenClose, {TextTransparency = 1}):Play()
     TweenService:Create(LoadingText, tweenClose, {TextTransparency = 1}):Play()
+    TweenService:Create(CloseBtn, tweenClose, {TextTransparency = 1}):Play()
     TweenService:Create(UIStroke, tweenClose, {Transparency = 1}):Play()
 
     task.wait(0.7)
@@ -253,7 +303,7 @@ local function startLoadingProcess(scriptUrl)
     env._EXECUTOR_TOKEN = AUTH_TOKEN
 
     local success, result = pcall(function()
-        local scriptContent = game:HttpGet(selectedScriptUrl)
+        local scriptContent = game:HttpGet(scriptUrl)
         local loadedFunc, err = loadstring(scriptContent)
         if not loadedFunc then
             error("Syntax/Compile error: " .. tostring(err))
@@ -267,7 +317,7 @@ local function startLoadingProcess(scriptUrl)
     end
 end
 
--- Обработка кликов
+-- Клики
 PhoneBtn.MouseButton1Click:Connect(function()
     startLoadingProcess(PHONE_SCRIPT_URL)
 end)
