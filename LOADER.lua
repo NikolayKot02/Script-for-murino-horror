@@ -110,6 +110,20 @@ SubtitleText.Font = Enum.Font.GothamMedium
 SubtitleText.TextTransparency = 1
 SubtitleText.Parent = MainFrame
 
+-- Текст статуса загрузки по центру
+local CenterStageText = Instance.new("TextLabel")
+CenterStageText.Name = "CenterStageText"
+CenterStageText.AnchorPoint = Vector2.new(0.5, 0.5)
+CenterStageText.Position = UDim2.new(0.5, 0, 0.58, 0)
+CenterStageText.Size = UDim2.new(0.85, 0, 0, 30)
+CenterStageText.BackgroundTransparency = 1
+CenterStageText.Text = ""
+CenterStageText.TextColor3 = Color3.fromRGB(160, 160, 170)
+CenterStageText.TextSize = 18
+CenterStageText.Font = Enum.Font.GothamBold
+CenterStageText.TextTransparency = 1
+CenterStageText.Parent = MainFrame
+
 -- Текст Предупреждения (Ошибки / Лобби)
 local StatusText = Instance.new("TextLabel")
 StatusText.Name = "StatusText"
@@ -237,16 +251,18 @@ end
 
 -- Функция запуска загрузки после клика
 local function startLoadingProcess(scriptUrl)
-    -- Скрываем кнопки
+    -- Скрываем кнопки и крестик (CloseBtn)
     TweenService:Create(PhoneBtn, tweenInfoFast, {TextTransparency = 1, BackgroundTransparency = 1}):Play()
     TweenService:Create(PhoneStroke, tweenInfoFast, {Transparency = 1}):Play()
     TweenService:Create(PcBtn, tweenInfoFast, {TextTransparency = 1, BackgroundTransparency = 1}):Play()
     TweenService:Create(PcStroke, tweenInfoFast, {Transparency = 1}):Play()
+    TweenService:Create(CloseBtn, tweenInfoFast, {TextTransparency = 1}):Play() -- Исчезновение крестика
 
     task.wait(0.3)
     ButtonsFrame.Visible = false
+    CloseBtn.Visible = false -- Отключаем кликабельность крестика во время загрузки
 
-    -- Показываем запуск
+    -- Показываем запуск загрузки
     LoadingFrame.Visible = true
     TweenService:Create(LoadingText, tweenInfoFast, {TextTransparency = 0}):Play()
     for _, dot in ipairs(dots) do
@@ -254,6 +270,8 @@ local function startLoadingProcess(scriptUrl)
     end
 
     local isLoading = true
+    
+    -- Анимация точек
     task.spawn(function()
         while isLoading do
             for i, dot in ipairs(dots) do
@@ -276,15 +294,44 @@ local function startLoadingProcess(scriptUrl)
         end
     end)
 
-    task.wait(10)
+    -- Поочерёдная И ПЛАВНАЯ смена текстов по центру
+    local stages = {"check place", "loading language", "loading script"}
+    local fadeTime = 0.5 -- Время плавного появления и исчезновения
+    local displayTime = 2.0 -- Время показа каждого текста
+
+    task.spawn(function()
+        for i, stage in ipairs(stages) do
+            if not isLoading then break end
+            
+            -- Ставим новый текст и плавно проявляем его
+            CenterStageText.Text = stage
+            local fadeIn = TweenService:Create(CenterStageText, TweenInfo.new(fadeTime, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextTransparency = 0})
+            fadeIn:Play()
+            fadeIn.Completed:Wait()
+
+            task.wait(displayTime)
+
+            -- Плавно растворяем текст
+            local fadeOut = TweenService:Create(CenterStageText, TweenInfo.new(fadeTime, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {TextTransparency = 1})
+            fadeOut:Play()
+            fadeOut.Completed:Wait()
+        end
+    end)
+
+    -- Задержка до окончания (полный цикл загрузки)
+    task.wait(#stages * (fadeTime * 2 + displayTime))
     isLoading = false
 
+    -- Плавно скрываем текст по центру, если он ещё виден
+    TweenService:Create(CenterStageText, TweenInfo.new(0.3), {TextTransparency = 1}):Play()
+
+    -- Отображение Done справа
     LoadingText.Text = "Done"
     for _, dot in ipairs(dots) do
         dot.Visible = false
     end
 
-    task.wait(0.5)
+    task.wait(0.6)
 
     -- Закрываем интерфейс
     local tweenClose = TweenInfo.new(0.7, Enum.EasingStyle.Quart, Enum.EasingDirection.In)
@@ -292,7 +339,6 @@ local function startLoadingProcess(scriptUrl)
     TweenService:Create(TitleText, tweenClose, {TextTransparency = 1}):Play()
     TweenService:Create(SubtitleText, tweenClose, {TextTransparency = 1}):Play()
     TweenService:Create(LoadingText, tweenClose, {TextTransparency = 1}):Play()
-    TweenService:Create(CloseBtn, tweenClose, {TextTransparency = 1}):Play()
     TweenService:Create(UIStroke, tweenClose, {Transparency = 1}):Play()
 
     task.wait(0.7)
