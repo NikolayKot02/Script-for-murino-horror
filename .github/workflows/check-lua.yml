@@ -1,0 +1,39 @@
+name: Check Luau Scripts
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  lint-and-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Luau
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lua5.1
+          curl -sL https://github.com/luau-lang/luau/releases/latest/download/luau-ubuntu.zip -o luau.zip
+          unzip luau.zip
+          sudo mv luau-analyze /usr/local/bin/
+          chmod +x /usr/local/bin/luau-analyze
+
+      - name: Syntax Check via Lua 5.1 Compilation
+        run: |
+          echo "=== Checking Syntax via Luac Compiler ==="
+          for file in $(find . -maxdepth 2 -name "*.lua"); do
+            echo "Checking: $file"
+            luac -p "$file"
+          done
+
+      - name: Static Analysis via Luau Analyze
+        run: |
+          echo "=== Running Luau Linter ==="
+          # Игнорируем предупреждения о нелокальных/эксплойт переменных
+          luau-analyze --ignore=UnknownGlobal $(find . -maxdepth 2 -name "*.lua")
