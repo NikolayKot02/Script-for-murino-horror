@@ -1,11 +1,26 @@
 --[[
     SWILL CORE // MEGA HUB WITH INSANE HOLY SPICE + ANTI ARTUR + GITHUB LOCALIZATION
-    Full feature set + INSANE Holy Spice + Auto Artur TP + Config System + OPTIMIZED ESP (Coins, Axe, Bandage, Flashlight, Artur, AntonChigur, Drun) + Fly Feature + Unload Script
+    Full feature set + INSANE Holy Spice + Auto Artur TP + Config System + OPTIMIZED ESP (Coins, Axe, Bandage, Flashlight, Artur, AntonChigur, Drun, Shkaf) + Fly Feature + Unload Script
     Author: denchik_klasn (Modified by NikolayKot)
     original script: loadstring(game:HttpGet("https://pastefy.app/gop6pus0/raw"))()
     Team: Swill Way
     Version: 2026 Refactor (Rayfield Gen2 Compliant)
 ]]
+-- ===== PLACE CHECK / ПРОВЕРКА ПЛЕЙСА =====
+local TARGET_PLACE_ID = 82406104802807 -- 👈 ВСТАВЬТЕ СЮДА НУЖНЫЙ PLACE ID (например: 123456789)
+
+if TARGET_PLACE_ID ~= 0 and game.PlaceId ~= TARGET_PLACE_ID then
+    warn("[Swill Hub] Script execution restricted: Incorrect Place ID (" .. tostring(game.PlaceId) .. "). Target Place ID: " .. tostring(TARGET_PLACE_ID))
+    
+    pcall(function()
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "Swill Hub Error",
+            Text = "Скрипт предназначен только для другого плейса!",
+            Duration = 5
+        })
+    end)
+    return
+end
 
 local configFolder = "SwillHub_Configs"
 local env = getgenv and getgenv() or _G
@@ -160,6 +175,7 @@ local uiElements = {
     ArturEspToggle = nil,
     AntonChigurEspToggle = nil,
     DrunEspToggle = nil,
+    ShkafEspToggle = nil,
     WalkSpeedToggle = nil,
     SpeedSlider = nil,
     NoclipToggle = nil,
@@ -219,6 +235,10 @@ local activeAntonChigurEspHighlights = {}
 local drunEspEnabled = false
 local drunEspThread = nil
 local activeDrunEspHighlights = {}
+
+local shkafEspEnabled = false
+local shkafEspThread = nil
+local activeShkafEspHighlights = {}
 
 -- Monster Spawn Notifications
 local monsterNotifyEnabled = false
@@ -1151,6 +1171,73 @@ local function stopDrunEsp()
     clearDrunEsp()
 end
 
+-- ===== SHKAF (CABINET) ESP LOGIC =====
+local function findShkafObjects()
+    local shkafList = {}
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj.Name == "Shkaf" then
+            table.insert(shkafList, obj)
+        end
+    end
+    return shkafList
+end
+
+local function clearShkafEsp()
+    for item, highlight in pairs(activeShkafEspHighlights) do
+        if highlight and highlight.Parent then highlight:Destroy() end
+    end
+    table.clear(activeShkafEspHighlights)
+end
+
+local function updateShkafEsp()
+    if not shkafEspEnabled or not isScriptRunning then return end
+    local shkafList = findShkafObjects()
+    local currentItems = {}
+
+    for _, item in ipairs(shkafList) do
+        if item and item.Parent then
+            currentItems[item] = true
+            if not activeShkafEspHighlights[item] then
+                local highlight = Instance.new("Highlight")
+                highlight.Name = "SwillShkafEsp"
+                highlight.Adornee = item
+                highlight.FillColor = Color3.fromRGB(0, 255, 0)
+                highlight.FillTransparency = 0.4
+                highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+                highlight.OutlineTransparency = 0
+                highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                highlight.Parent = item
+
+                activeShkafEspHighlights[item] = highlight
+            end
+        end
+    end
+
+    for item, highlight in pairs(activeShkafEspHighlights) do
+        if not currentItems[item] then
+            if highlight and highlight.Parent then highlight:Destroy() end
+            activeShkafEspHighlights[item] = nil
+        end
+    end
+end
+
+local function startShkafEsp()
+    if shkafEspEnabled then return end
+    shkafEspEnabled = true
+    shkafEspThread = task.spawn(function()
+        while shkafEspEnabled and isScriptRunning do
+            updateShkafEsp()
+            task.wait(7)
+        end
+    end)
+end
+
+local function stopShkafEsp()
+    shkafEspEnabled = false
+    if shkafEspThread then shkafEspThread = nil end
+    clearShkafEsp()
+end
+
 -- ===== ANTI ARTUR =====
 local function findArtur()
     local hitboxes = workspace:FindFirstChild("Hitboxes")
@@ -1292,6 +1379,7 @@ local function unloadScript()
     stopArturEsp()
     stopAntonChigurEsp()
     stopDrunEsp()
+    stopShkafEsp()
     stopMonsterNotifications()
     stopWalkspeed()
     stopNoclip()
@@ -1458,6 +1546,13 @@ uiElements.FlashlightEspToggle = TabEsp:CreateToggle({
     description = "Highlights all flashlights on the map through walls",
     currentValue = false,
     callback = function(v) if v then startFlashlightEsp() else stopFlashlightEsp() end end,
+})
+
+uiElements.ShkafEspToggle = TabEsp:CreateToggle({
+    Name = "Cabinet ESP",
+    Description = "Highlights all cabinets (Shkaf) on the map through walls",
+    CurrentValue = false,
+    Callback = function(v) if v then startShkafEsp() else stopShkafEsp() end end,
 })
 
 TabEsp:CreateSection({ name = "Monster & World Visual Highlights" })
@@ -1642,6 +1737,7 @@ local function getCurrentConfigData()
         ArturEspEnabled = arturEspEnabled,
         AntonChigurEspEnabled = antonChigurEspEnabled,
         DrunEspEnabled = drunEspEnabled,
+        ShkafEspEnabled = shkafEspEnabled,
         AutoExecOnTeleport = autoExecOnTeleport,
         Language = CurrentLanguage
     }
@@ -1696,6 +1792,10 @@ local function applyConfigData(data)
 
     if data.DrunEspEnabled ~= nil and uiElements.DrunEspToggle then
         uiElements.DrunEspToggle:Set(data.DrunEspEnabled)
+    end
+
+    if data.ShkafEspEnabled ~= nil and uiElements.ShkafEspToggle then
+        uiElements.ShkafEspToggle:Set(data.ShkafEspEnabled)
     end
 
     if data.MonsterNotifyEnabled ~= nil and uiElements.MonsterNotifyToggle then
