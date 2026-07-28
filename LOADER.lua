@@ -8,17 +8,81 @@
 local LOBBY_PLACE_ID = 72500576874545 -- Укажите Place ID вашего Лобби
 local GAME_PLACE_ID = 82406104802807  -- Укажите Place ID игровой карты
 
+-- Список Roblox UserId пользователей, которым доступен Бета-тест
+local BETA_USERS = {
+    -- 123456789, -- Добавь сюда UserId нужных игроков
+    8536712832
+}
+
 local AUTH_TOKEN = "SWILL_SECURE_TOKEN_998811"
 local PC_SCRIPT_URL = "https://raw.githubusercontent.com/NikolayKot02/Script-for-murino-horror/refs/heads/main/Skriptmurino.lua"
-local PHONE_SCRIPT_URL = "https://raw.githubusercontent.com/NikolayKot02/Script-for-murino-horror/refs/heads/main/Skriptmurino.lua" -- Ссылка на мобильную версию
+local PHONE_SCRIPT_URL = "https://raw.githubusercontent.com/NikolayKot02/Script-for-murino-horror/refs/heads/main/Skriptmurinophone.lua"
+
+-- ПРЯМЫЕ ССЫЛКИ НА КАРТИНКИ С GITHUB (RAW)
+local PHONE_ICON_URL = "https://raw.githubusercontent.com/NikolayKot02/Script-for-murino-horror/main/resurses/noFilter2.png"
+local PC_ICON_URL    = "https://raw.githubusercontent.com/NikolayKot02/Script-for-murino-horror/main/resurses/noFilter.png"
+local CLOSE_ICON_URL = "https://raw.githubusercontent.com/NikolayKot02/Script-for-murino-horror/main/resurses/Close.png"
 
 local env = getgenv and getgenv() or _G
 local CoreGui = game:GetService("CoreGui")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+
+local LocalPlayer = Players.LocalPlayer or Players:GetPropertyChangedSignal("LocalPlayer"):Wait()
+
+-- Проверка: имеет ли текущий игрок доступ к бета-тесту
+local function isUserInBeta(userId)
+    -- Если список пустой, то доступно всем (для удобства тестов)
+    if #BETA_USERS == 0 then return true end 
+    for _, id in ipairs(BETA_USERS) do
+        if id == userId then
+            return true
+        end
+    end
+    return false
+end
+
+local HAS_BETA_ACCESS = isUserInBeta(LocalPlayer.UserId)
+
+-- Определяем платформу пользователя
+local IS_MOBILE = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
 
 -- Разблокировка курсора
 UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+
+-- ===== HELPER: GITHUB IMAGE LOADER =====
+local function getGithubAsset(url, fileName)
+    if not (writefile and isfile and getcustomasset) then
+        warn("[Swill Loader] Ваш эксплойт не поддерживает getcustomasset/writefile!")
+        return ""
+    end
+
+    local folderName = "SwillLoaderAssets"
+    if not isfolder(folderName) then
+        makefolder(folderName)
+    end
+
+    local filePath = folderName .. "/" .. fileName
+    if not isfile(filePath) then
+        local success, result = pcall(function()
+            return game:HttpGet(url)
+        end)
+        if success then
+            writefile(filePath, result)
+        else
+            warn("[Swill Loader] Не удалось загрузить картинку с GitHub:", url)
+            return ""
+        end
+    end
+
+    return getcustomasset(filePath)
+end
+
+-- Загружаем ресурсы с GitHub
+local PHONE_ICON_ASSET = getGithubAsset(PHONE_ICON_URL, "phone_icon.png")
+local PC_ICON_ASSET    = getGithubAsset(PC_ICON_URL, "pc_icon.png")
+local CLOSE_ICON_ASSET = getGithubAsset(CLOSE_ICON_URL, "close_icon.png")
 
 -- ===== UI CONSTRUCTION =====
 if CoreGui:FindFirstChild("SwillLoaderUI") then
@@ -86,7 +150,7 @@ end)
 local TitleText = Instance.new("TextLabel")
 TitleText.Name = "TitleText"
 TitleText.AnchorPoint = Vector2.new(0.5, 0)
-TitleText.Position = UDim2.new(0.5, 0, 0.12, 0)
+TitleText.Position = UDim2.new(0.5, 0, 0.08, 0)
 TitleText.Size = UDim2.new(0.9, 0, 0, 30)
 TitleText.BackgroundTransparency = 1
 TitleText.Text = "Script for murino horror"
@@ -100,7 +164,7 @@ TitleText.Parent = MainFrame
 local SubtitleText = Instance.new("TextLabel")
 SubtitleText.Name = "SubtitleText"
 SubtitleText.AnchorPoint = Vector2.new(0.5, 0)
-SubtitleText.Position = UDim2.new(0.5, 0, 0.28, 0)
+SubtitleText.Position = UDim2.new(0.5, 0, 0.23, 0)
 SubtitleText.Size = UDim2.new(0.8, 0, 0, 18)
 SubtitleText.BackgroundTransparency = 1
 SubtitleText.Text = "By NikolayKot"
@@ -114,15 +178,29 @@ SubtitleText.Parent = MainFrame
 local CenterStageText = Instance.new("TextLabel")
 CenterStageText.Name = "CenterStageText"
 CenterStageText.AnchorPoint = Vector2.new(0.5, 0.5)
-CenterStageText.Position = UDim2.new(0.5, 0, 0.58, 0)
+CenterStageText.Position = UDim2.new(0.5, 0, 0.54, 0)
 CenterStageText.Size = UDim2.new(0.85, 0, 0, 30)
 CenterStageText.BackgroundTransparency = 1
 CenterStageText.Text = ""
 CenterStageText.TextColor3 = Color3.fromRGB(160, 160, 170)
-CenterStageText.TextSize = 18
+CenterStageText.TextSize = 16
 CenterStageText.Font = Enum.Font.GothamBold
 CenterStageText.TextTransparency = 1
 CenterStageText.Parent = MainFrame
+
+-- Постоянная надпись под основным текстом загрузки (для бета-теста)
+local BetaNoticeText = Instance.new("TextLabel")
+BetaNoticeText.Name = "BetaNoticeText"
+BetaNoticeText.AnchorPoint = Vector2.new(0.5, 0)
+BetaNoticeText.Position = UDim2.new(0.5, 0, 0.67, 0)
+BetaNoticeText.Size = UDim2.new(0.9, 0, 0, 20)
+BetaNoticeText.BackgroundTransparency = 1
+BetaNoticeText.Text = "This is a beta test and there are many bugs"
+BetaNoticeText.TextColor3 = Color3.fromRGB(255, 170, 0)
+BetaNoticeText.TextSize = 12
+BetaNoticeText.Font = Enum.Font.GothamMedium
+BetaNoticeText.TextTransparency = 1
+BetaNoticeText.Parent = MainFrame
 
 -- Текст Предупреждения (Ошибки / Лобби)
 local StatusText = Instance.new("TextLabel")
@@ -143,25 +221,41 @@ StatusText.Parent = MainFrame
 local ButtonsFrame = Instance.new("Frame")
 ButtonsFrame.Name = "ButtonsFrame"
 ButtonsFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-ButtonsFrame.Position = UDim2.new(0.5, 0, 0.65, 0)
-ButtonsFrame.Size = UDim2.new(0.8, 0, 0, 45)
+ButtonsFrame.Position = UDim2.new(0.5, 0, 0.62, 0)
+ButtonsFrame.Size = UDim2.new(0.8, 0, 0, 65)
 ButtonsFrame.BackgroundTransparency = 1
 ButtonsFrame.Visible = false
 ButtonsFrame.Parent = MainFrame
 
-local function createPlatformButton(name, text, position)
+local function createPlatformButton(name, text, assetId, position)
+    local wrapper = Instance.new("Frame")
+    wrapper.Name = name .. "_Wrapper"
+    wrapper.Position = position
+    wrapper.Size = UDim2.new(0.45, 0, 1, 0)
+    wrapper.BackgroundTransparency = 1
+    wrapper.Parent = ButtonsFrame
+
+    -- Текст ошибки / предупреждения сверху кнопки
+    local warnText = Instance.new("TextLabel")
+    warnText.Name = "WarnText"
+    warnText.Size = UDim2.new(1, 0, 0, 14)
+    warnText.Position = UDim2.new(0, 0, 0, -16)
+    warnText.BackgroundTransparency = 1
+    warnText.Text = ""
+    warnText.TextColor3 = Color3.fromRGB(255, 75, 75)
+    warnText.Font = Enum.Font.GothamBold
+    warnText.TextSize = 9
+    warnText.TextScaled = true
+    warnText.TextTransparency = 1
+    warnText.Parent = wrapper
+
     local btn = Instance.new("TextButton")
     btn.Name = name
-    btn.Position = position
-    btn.Size = UDim2.new(0.45, 0, 1, 0)
+    btn.Size = UDim2.new(1, 0, 1, 0)
     btn.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
-    btn.Text = text
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 16
-    btn.TextTransparency = 1
+    btn.Text = ""
     btn.BackgroundTransparency = 1
-    btn.Parent = ButtonsFrame
+    btn.Parent = wrapper
 
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 8)
@@ -173,11 +267,88 @@ local function createPlatformButton(name, text, position)
     stroke.Transparency = 1
     stroke.Parent = btn
 
-    return btn, stroke
+    local layout = Instance.new("UIListLayout")
+    layout.FillDirection = Enum.FillDirection.Vertical
+    layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    layout.VerticalAlignment = Enum.VerticalAlignment.Center
+    layout.Padding = UDim.new(0, 4)
+    layout.Parent = btn
+
+    local icon = Instance.new("ImageLabel")
+    icon.Name = "ButtonIcon"
+    icon.Size = UDim2.new(0, 24, 0, 24)
+    icon.BackgroundTransparency = 1
+    icon.Image = assetId
+    icon.ImageColor3 = Color3.fromRGB(255, 255, 255)
+    icon.ImageTransparency = 1
+    icon.Parent = btn
+
+    local txtLabel = Instance.new("TextLabel")
+    txtLabel.Name = "ButtonText"
+    txtLabel.Size = UDim2.new(1, 0, 0, 18)
+    txtLabel.BackgroundTransparency = 1
+    txtLabel.Text = text
+    txtLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    txtLabel.Font = Enum.Font.GothamBold
+    txtLabel.TextSize = 15
+    txtLabel.TextTransparency = 1
+    txtLabel.Parent = btn
+
+    return btn, stroke, icon, txtLabel, warnText, wrapper
 end
 
-local PhoneBtn, PhoneStroke = createPlatformButton("PhoneBtn", "Phone", UDim2.new(0, 0, 0, 0))
-local PcBtn, PcStroke = createPlatformButton("PcBtn", "PC", UDim2.new(0.55, 0, 0, 0))
+local PhoneBtn, PhoneStroke, PhoneIcon, PhoneText, PhoneWarn, PhoneWrapper = createPlatformButton("PhoneBtn", "Phone", PHONE_ICON_ASSET, UDim2.new(0, 0, 0, 0))
+local PcBtn, PcStroke, PcIcon, PcText, PcWarn, PcWrapper       = createPlatformButton("PcBtn", "PC", PC_ICON_ASSET, UDim2.new(0.55, 0, 0, 0))
+
+-- ===== MINI BETA TEST BUTTON (ПОД КНОПКОЙ PHONE) =====
+local BetaPhoneBtn = Instance.new("TextButton")
+BetaPhoneBtn.Name = "BetaPhoneBtn"
+BetaPhoneBtn.Position = UDim2.new(0, 0, 1, 6)
+BetaPhoneBtn.Size = UDim2.new(1, 0, 0, 20)
+BetaPhoneBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+BetaPhoneBtn.Text = "Beta Test"
+BetaPhoneBtn.TextColor3 = Color3.fromRGB(0, 180, 255)
+BetaPhoneBtn.Font = Enum.Font.GothamBold
+BetaPhoneBtn.TextSize = 11
+BetaPhoneBtn.BackgroundTransparency = 1
+BetaPhoneBtn.TextTransparency = 1
+BetaPhoneBtn.Visible = HAS_BETA_ACCESS -- Видимость зависит от прав бета-теста
+BetaPhoneBtn.Parent = PhoneWrapper
+
+local BetaCorner = Instance.new("UICorner")
+BetaCorner.CornerRadius = UDim.new(0, 5)
+BetaCorner.Parent = BetaPhoneBtn
+
+local BetaStroke = Instance.new("UIStroke")
+BetaStroke.Color = Color3.fromRGB(0, 140, 220)
+BetaStroke.Thickness = 1
+BetaStroke.Transparency = 1
+BetaStroke.Parent = BetaPhoneBtn
+
+BetaPhoneBtn.MouseEnter:Connect(function()
+    TweenService:Create(BetaPhoneBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 120, 200), TextColor3 = Color3.fromRGB(255, 255, 255)}):Play()
+end)
+BetaPhoneBtn.MouseLeave:Connect(function()
+    TweenService:Create(BetaPhoneBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(35, 35, 45), TextColor3 = Color3.fromRGB(0, 180, 255)}):Play()
+end)
+
+-- ===== PLATFORM & AVAILABILITY LOGIC =====
+local isPhoneDisabled = true      -- Временно отключено ("Coming soon...")
+local isPcDisabled    = IS_MOBILE -- На телефоне кнопка PC не работает
+
+-- Настройка состояния кнопки Phone
+PhoneIcon.Image = CLOSE_ICON_ASSET
+PhoneText.TextColor3 = Color3.fromRGB(120, 120, 130)
+PhoneBtn.AutoButtonColor = false
+PhoneWarn.Text = "Coming soon..."
+
+-- Настройка состояния кнопки PC
+if isPcDisabled then
+    PcIcon.Image = CLOSE_ICON_ASSET
+    PcText.TextColor3 = Color3.fromRGB(120, 120, 130)
+    PcBtn.AutoButtonColor = false
+    PcWarn.Text = "System does not support this script"
+end
 
 -- ===== LOADING CONTAINER =====
 local LoadingFrame = Instance.new("Frame")
@@ -238,31 +409,64 @@ if currentPlaceId == LOBBY_PLACE_ID then
     StatusText.Text = "Script does not work in the Lobby"
     TweenService:Create(StatusText, tweenInfoFast, {TextTransparency = 0}):Play()
 elseif currentPlaceId == GAME_PLACE_ID then
-    -- Показываем кнопки выбора платформы
     ButtonsFrame.Visible = true
-    TweenService:Create(PhoneBtn, tweenInfoFast, {TextTransparency = 0, BackgroundTransparency = 0}):Play()
+    
+    TweenService:Create(PhoneBtn, tweenInfoFast, {BackgroundTransparency = 0}):Play()
+    TweenService:Create(PhoneIcon, tweenInfoFast, {ImageTransparency = 0}):Play()
+    TweenService:Create(PhoneText, tweenInfoFast, {TextTransparency = 0}):Play()
     TweenService:Create(PhoneStroke, tweenInfoFast, {Transparency = 0}):Play()
-    TweenService:Create(PcBtn, tweenInfoFast, {TextTransparency = 0, BackgroundTransparency = 0}):Play()
+    if PhoneWarn.Text ~= "" then
+        TweenService:Create(PhoneWarn, tweenInfoFast, {TextTransparency = 0}):Play()
+    end
+    
+    -- Проявление мини-кнопки Бета-теста (только для разрешенных пользователей)
+    if HAS_BETA_ACCESS then
+        TweenService:Create(BetaPhoneBtn, tweenInfoFast, {BackgroundTransparency = 0, TextTransparency = 0}):Play()
+        TweenService:Create(BetaStroke, tweenInfoFast, {Transparency = 0}):Play()
+    end
+
+    TweenService:Create(PcBtn, tweenInfoFast, {BackgroundTransparency = 0}):Play()
+    TweenService:Create(PcIcon, tweenInfoFast, {ImageTransparency = 0}):Play()
+    TweenService:Create(PcText, tweenInfoFast, {TextTransparency = 0}):Play()
     TweenService:Create(PcStroke, tweenInfoFast, {Transparency = 0}):Play()
+    if PcWarn.Text ~= "" then
+        TweenService:Create(PcWarn, tweenInfoFast, {TextTransparency = 0}):Play()
+    end
 else
     StatusText.Text = "This game is not supported"
     TweenService:Create(StatusText, tweenInfoFast, {TextTransparency = 0}):Play()
 end
 
 -- Функция запуска загрузки после клика
-local function startLoadingProcess(scriptUrl)
-    -- Скрываем кнопки и крестик (CloseBtn)
-    TweenService:Create(PhoneBtn, tweenInfoFast, {TextTransparency = 1, BackgroundTransparency = 1}):Play()
+local function startLoadingProcess(scriptUrl, isBeta)
+    TweenService:Create(PhoneBtn, tweenInfoFast, {BackgroundTransparency = 1}):Play()
+    TweenService:Create(PhoneIcon, tweenInfoFast, {ImageTransparency = 1}):Play()
+    TweenService:Create(PhoneText, tweenInfoFast, {TextTransparency = 1}):Play()
     TweenService:Create(PhoneStroke, tweenInfoFast, {Transparency = 1}):Play()
-    TweenService:Create(PcBtn, tweenInfoFast, {TextTransparency = 1, BackgroundTransparency = 1}):Play()
+    TweenService:Create(PhoneWarn, tweenInfoFast, {TextTransparency = 1}):Play()
+
+    if HAS_BETA_ACCESS then
+        TweenService:Create(BetaPhoneBtn, tweenInfoFast, {BackgroundTransparency = 1, TextTransparency = 1}):Play()
+        TweenService:Create(BetaStroke, tweenInfoFast, {Transparency = 1}):Play()
+    end
+
+    TweenService:Create(PcBtn, tweenInfoFast, {BackgroundTransparency = 1}):Play()
+    TweenService:Create(PcIcon, tweenInfoFast, {ImageTransparency = 1}):Play()
+    TweenService:Create(PcText, tweenInfoFast, {TextTransparency = 1}):Play()
     TweenService:Create(PcStroke, tweenInfoFast, {Transparency = 1}):Play()
-    TweenService:Create(CloseBtn, tweenInfoFast, {TextTransparency = 1}):Play() -- Исчезновение крестика
+    TweenService:Create(PcWarn, tweenInfoFast, {TextTransparency = 1}):Play()
+
+    TweenService:Create(CloseBtn, tweenInfoFast, {TextTransparency = 1}):Play()
 
     task.wait(0.3)
     ButtonsFrame.Visible = false
-    CloseBtn.Visible = false -- Отключаем кликабельность крестика во время загрузки
+    CloseBtn.Visible = false
 
-    -- Показываем запуск загрузки
+    -- Показываем предупреждающую надпись только в режиме бета-теста
+    if isBeta then
+        TweenService:Create(BetaNoticeText, tweenInfoFast, {TextTransparency = 0}):Play()
+    end
+
     LoadingFrame.Visible = true
     TweenService:Create(LoadingText, tweenInfoFast, {TextTransparency = 0}):Play()
     for _, dot in ipairs(dots) do
@@ -271,7 +475,6 @@ local function startLoadingProcess(scriptUrl)
 
     local isLoading = true
     
-    -- Анимация точек
     task.spawn(function()
         while isLoading do
             for i, dot in ipairs(dots) do
@@ -294,16 +497,14 @@ local function startLoadingProcess(scriptUrl)
         end
     end)
 
-    -- Поочерёдная И ПЛАВНАЯ смена текстов по центру
     local stages = {"check place", "loading language", "loading script"}
-    local fadeTime = 0.5 -- Время плавного появления и исчезновения
-    local displayTime = 2.0 -- Время показа каждого текста
+    local fadeTime = 0.5
+    local displayTime = 2.0
 
     task.spawn(function()
         for i, stage in ipairs(stages) do
             if not isLoading then break end
             
-            -- Ставим новый текст и плавно проявляем его
             CenterStageText.Text = stage
             local fadeIn = TweenService:Create(CenterStageText, TweenInfo.new(fadeTime, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextTransparency = 0})
             fadeIn:Play()
@@ -311,21 +512,20 @@ local function startLoadingProcess(scriptUrl)
 
             task.wait(displayTime)
 
-            -- Плавно растворяем текст
             local fadeOut = TweenService:Create(CenterStageText, TweenInfo.new(fadeTime, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {TextTransparency = 1})
             fadeOut:Play()
             fadeOut.Completed:Wait()
         end
     end)
 
-    -- Задержка до окончания (полный цикл загрузки)
     task.wait(#stages * (fadeTime * 2 + displayTime))
     isLoading = false
 
-    -- Плавно скрываем текст по центру, если он ещё виден
     TweenService:Create(CenterStageText, TweenInfo.new(0.3), {TextTransparency = 1}):Play()
+    if isBeta then
+        TweenService:Create(BetaNoticeText, TweenInfo.new(0.3), {TextTransparency = 1}):Play()
+    end
 
-    -- Отображение Done справа
     LoadingText.Text = "Done"
     for _, dot in ipairs(dots) do
         dot.Visible = false
@@ -333,7 +533,6 @@ local function startLoadingProcess(scriptUrl)
 
     task.wait(0.6)
 
-    -- Закрываем интерфейс
     local tweenClose = TweenInfo.new(0.7, Enum.EasingStyle.Quart, Enum.EasingDirection.In)
     TweenService:Create(MainFrame, tweenClose, {Size = UDim2.new(0, 0, 0, 220)}):Play()
     TweenService:Create(TitleText, tweenClose, {TextTransparency = 1}):Play()
@@ -363,11 +562,21 @@ local function startLoadingProcess(scriptUrl)
     end
 end
 
--- Клики
+-- ОБРАБОТКА КЛИКОВ (С проверкой доступности)
 PhoneBtn.MouseButton1Click:Connect(function()
-    startLoadingProcess(PHONE_SCRIPT_URL)
+    if isPhoneDisabled then
+        return -- Заблокировано (Coming soon...)
+    end
+    startLoadingProcess(PHONE_SCRIPT_URL, false)
+end)
+
+BetaPhoneBtn.MouseButton1Click:Connect(function()
+    startLoadingProcess(PHONE_SCRIPT_URL, true)
 end)
 
 PcBtn.MouseButton1Click:Connect(function()
-    startLoadingProcess(PC_SCRIPT_URL)
+    if isPcDisabled then
+        return -- Заблокировано для мобильных устройств
+    end
+    startLoadingProcess(PC_SCRIPT_URL, false)
 end)
