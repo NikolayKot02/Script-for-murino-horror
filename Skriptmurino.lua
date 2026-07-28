@@ -40,6 +40,8 @@ _G.SwillHubLoaded = true
 
 local HttpService = game:GetService("HttpService")
 local LocalizationService = game:GetService("LocalizationService")
+local Players = game:GetService("Players")
+local plr = Players.LocalPlayer
 
 -- ===== GITHUB & LOCALIZATION CONFIG =====
 local GITHUB_USER = "NikolayKot02"
@@ -145,7 +147,6 @@ if initialPack then
 end
 
 -- ===== SERVICES =====
-local plr = game:GetService("Players").LocalPlayer
 local runService = game:GetService("RunService")
 local lighting = game:GetService("Lighting")
 
@@ -1290,6 +1291,41 @@ local function unloadScript()
 end
 
 -- ===== INTERFACE - HOME TAB =====
+-- Получение картинки аватарки игрока
+local avatarUrl = "rbxthumb://type=AvatarHeadShot&id=" .. plr.UserId .. "&w=150&h=150"
+
+-- Контейнер для центрирования аватарки игрока
+local AvatarContainer = Instance.new("Frame")
+AvatarContainer.Name = "AvatarContainer"
+AvatarContainer.Size = UDim2.new(1, 0, 0, 80)
+AvatarContainer.BackgroundTransparency = 1
+
+local AvatarImage = Instance.new("ImageLabel")
+AvatarImage.Name = "UserAvatar"
+AvatarImage.AnchorPoint = Vector2.new(0.5, 0.5)
+AvatarImage.Position = UDim2.new(0.5, 0, 0.5, 0)
+AvatarImage.Size = UDim2.new(0, 70, 0, 70)
+AvatarImage.BackgroundTransparency = 1
+AvatarImage.Image = avatarUrl
+AvatarImage.Parent = AvatarContainer
+
+local AvatarCorner = Instance.new("UICorner")
+AvatarCorner.CornerRadius = UDim.new(1, 0) -- Круглая аватарка
+AvatarCorner.Parent = AvatarImage
+
+local AvatarStroke = Instance.new("UIStroke")
+AvatarStroke.Color = Color3.fromRGB(0, 170, 255)
+AvatarStroke.Thickness = 2
+AvatarStroke.Parent = AvatarImage
+
+-- Привязываем кастомный кадр к внутреннему контейнеру Rayfield
+if TabHome.Container then
+    AvatarContainer.Parent = TabHome.Container
+elseif TabHome.TabFolder then
+    AvatarContainer.Parent = TabHome.TabFolder
+end
+
+TabHome:CreateSection({ name = "Hello, " .. plr.DisplayName .. " (@" .. plr.Name .. ")" })
 TabHome:CreateSection({ name = "Information: Welcome to Murino Horror Hub!" })
 TabHome:CreateSection({ name = "Author: NikolayKot" })
 
