@@ -1263,10 +1263,26 @@ local function setupAutoTeleportExec()
     end)
 end
 
+-- ===== DISABLE AUTO EXEC FUNCTION =====
+local function disableAutoExec()
+    autoExecOnTeleport = false
+    
+    if uiElements.AutoTeleportToggle and uiElements.AutoTeleportToggle.Set then
+        uiElements.AutoTeleportToggle:Set(false)
+    end
+    
+    if writefile then
+        writefile(configFolder .. "/autoexec_state.txt", "false")
+    end
+end
+
 -- ===== UNLOAD / DISABLE SCRIPT =====
 local function unloadScript()
     isScriptRunning = false
     _G.SwillHubLoaded = nil
+    
+    -- Отключаем Auto-exec и его состояние
+    disableAutoExec()
     
     stopFarm()
     stopCoinsEsp()
@@ -1283,7 +1299,11 @@ local function unloadScript()
     stopFullbright()
     stopHolySpice()
     stopAntiArtur()
-    if teleportConnection then teleportConnection:Disconnect() end
+    
+    if teleportConnection then 
+        teleportConnection:Disconnect()
+        teleportConnection = nil
+    end
     
     revertFullbright()
     Window:Unload()
@@ -1318,7 +1338,7 @@ AvatarStroke.Color = Color3.fromRGB(0, 170, 255)
 AvatarStroke.Thickness = 2
 AvatarStroke.Parent = AvatarImage
 
--- Привязываем кастомный кадр к внутреннему контейнеру Rayfield
+-- Прямой проброс к контейнеру Rayfield для предотвращения ошибки AddCustom
 if TabHome.Container then
     AvatarContainer.Parent = TabHome.Container
 elseif TabHome.TabFolder then
