@@ -7,7 +7,7 @@
     Version: 2026 Refactor (Rayfield Gen2 Compliant)
 ]]
 -- ===== PLACE CHECK / ПРОВЕРКА ПЛЕЙСА =====
-local TARGET_PLACE_ID = 82406104802807 -- 👈 ВСТАВЬТЕ СЮДА НУЖНЫЙ PLACE ID (например: 123456789)
+local TARGET_PLACE_ID = 82406104802807
 
 if TARGET_PLACE_ID ~= 0 and game.PlaceId ~= TARGET_PLACE_ID then
     warn("[Swill Hub] Script execution restricted: Incorrect Place ID (" .. tostring(game.PlaceId) .. "). Target Place ID: " .. tostring(TARGET_PLACE_ID))
