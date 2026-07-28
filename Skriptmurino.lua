@@ -1,6 +1,6 @@
 --[[
     SWILL CORE // MEGA HUB WITH INSANE HOLY SPICE + ANTI ARTUR + GITHUB LOCALIZATION
-    Full feature set + INSANE Holy Spice + Auto Artur TP + Config System + OPTIMIZED ESP (Coins, Axe, Bandage, Flashlight, Artur, AntonChigur, Drun, Shkaf) + Fly Feature + Unload Script
+    Full feature set + INSANE Holy Spice + Auto Artur TP + Config System + OPTIMIZED ESP (Coins, Axe, Bandage, Flashlight, Pills, Artur, AntonChigur, Drun, Shkaf) + Fly Feature + Unload Script
     Author: denchik_klasn (Modified by NikolayKot)
     original script: loadstring(game:HttpGet("https://pastefy.app/gop6pus0/raw"))()
     Team: Swill Way
@@ -172,6 +172,7 @@ local uiElements = {
     AxeEspToggle = nil,
     BandageEspToggle = nil,
     FlashlightEspToggle = nil,
+    PillsEspToggle = nil,
     ArturEspToggle = nil,
     AntonChigurEspToggle = nil,
     DrunEspToggle = nil,
@@ -223,6 +224,10 @@ local activeBandageEspHighlights = {}
 local flashlightEspEnabled = false
 local flashlightEspThread = nil
 local activeFlashlightEspHighlights = {}
+
+local pillsEspEnabled = false
+local pillsEspThread = nil
+local activePillsEspHighlights = {}
 
 local arturEspEnabled = false
 local arturEspThread = nil
@@ -964,6 +969,73 @@ local function stopFlashlightEsp()
     clearFlashlightEsp()
 end
 
+-- ===== PILLS ESP LOGIC =====
+local function findPills()
+    local pills = {}
+    for _, item in pairs(workspace:GetDescendants()) do
+        if (item.Name == "Pills" or item.Name == "Pill") and (item:IsA("Model") or item:IsA("BasePart") or item:IsA("Tool")) then
+            table.insert(pills, item)
+        end
+    end
+    return pills
+end
+
+local function clearPillsEsp()
+    for item, highlight in pairs(activePillsEspHighlights) do
+        if highlight and highlight.Parent then highlight:Destroy() end
+    end
+    table.clear(activePillsEspHighlights)
+end
+
+local function updatePillsEsp()
+    if not pillsEspEnabled or not isScriptRunning then return end
+    local items = findPills()
+    local currentItems = {}
+
+    for _, item in ipairs(items) do
+        if item and item.Parent then
+            currentItems[item] = true
+            if not activePillsEspHighlights[item] then
+                local highlight = Instance.new("Highlight")
+                highlight.Name = "SwillPillsEsp"
+                highlight.Adornee = item
+                highlight.FillColor = Color3.fromRGB(0, 255, 255)
+                highlight.FillTransparency = 0.4
+                highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+                highlight.OutlineTransparency = 0
+                highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                highlight.Parent = item
+
+                activePillsEspHighlights[item] = highlight
+            end
+        end
+    end
+
+    for item, highlight in pairs(activePillsEspHighlights) do
+        if not currentItems[item] then
+            if highlight and highlight.Parent then highlight:Destroy() end
+            activePillsEspHighlights[item] = nil
+        end
+    end
+end
+
+local function startPillsEsp()
+    if pillsEspEnabled then return end
+    pillsEspEnabled = true
+    pillsEspThread = task.spawn(function()
+        while pillsEspEnabled and isScriptRunning do
+            updatePillsEsp()
+            task.wait(7)
+        end
+    end)
+end
+
+local function stopPillsEsp()
+    pillsEspEnabled = false
+    if pillsEspThread then pillsEspThread = nil end
+    clearPillsEsp()
+end
+
 -- ===== ARTUR ESP LOGIC =====
 local function findArturObjects()
     local arturs = {}
@@ -1376,6 +1448,7 @@ local function unloadScript()
     stopAxeEsp()
     stopBandageEsp()
     stopFlashlightEsp()
+    stopPillsEsp()
     stopArturEsp()
     stopAntonChigurEsp()
     stopDrunEsp()
@@ -1548,11 +1621,18 @@ uiElements.FlashlightEspToggle = TabEsp:CreateToggle({
     callback = function(v) if v then startFlashlightEsp() else stopFlashlightEsp() end end,
 })
 
+uiElements.PillsEspToggle = TabEsp:CreateToggle({
+    name = "Pills ESP",
+    description = "Highlights all pills on the map through walls",
+    currentValue = false,
+    callback = function(v) if v then startPillsEsp() else stopPillsEsp() end end,
+})
+
 uiElements.ShkafEspToggle = TabEsp:CreateToggle({
-    Name = "Cabinet ESP",
-    Description = "Highlights all cabinets (Shkaf) on the map through walls",
-    CurrentValue = false,
-    Callback = function(v) if v then startShkafEsp() else stopShkafEsp() end end,
+    name = "Cabinet ESP",
+    description = "Highlights all cabinets (Shkaf) on the map through walls",
+    currentValue = false,
+    callback = function(v) if v then startShkafEsp() else stopShkafEsp() end end,
 })
 
 TabEsp:CreateSection({ name = "Monster & World Visual Highlights" })
@@ -1734,6 +1814,7 @@ local function getCurrentConfigData()
         AxeEspEnabled = axeEspEnabled,
         BandageEspEnabled = bandageEspEnabled,
         FlashlightEspEnabled = flashlightEspEnabled,
+        PillsEspEnabled = pillsEspEnabled,
         ArturEspEnabled = arturEspEnabled,
         AntonChigurEspEnabled = antonChigurEspEnabled,
         DrunEspEnabled = drunEspEnabled,
@@ -1780,6 +1861,10 @@ local function applyConfigData(data)
 
     if data.FlashlightEspEnabled ~= nil and uiElements.FlashlightEspToggle then
         uiElements.FlashlightEspToggle:Set(data.FlashlightEspEnabled)
+    end
+
+    if data.PillsEspEnabled ~= nil and uiElements.PillsEspToggle then
+        uiElements.PillsEspToggle:Set(data.PillsEspEnabled)
     end
 
     if data.ArturEspEnabled ~= nil and uiElements.ArturEspToggle then
