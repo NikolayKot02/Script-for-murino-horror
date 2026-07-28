@@ -3,7 +3,9 @@
 Official script repository for the **Murino Horror** game in Roblox.
 
 This project features an interactive animated loader, a feature-rich script hub (powered by Rayfield Gen2), auto-farm, optimized visual effects (ESP), and a localization system.
-
+---
+# Me
+<a href="https://rscripts.net/user/NikolayKot" target="_blank"><img alt="NikolayKot on Rscripts" loading="lazy" width="360" height="132" src="https://rscripts.net/api/embed/user/NikolayKot?theme=dark" /></a>
 ---
 
 ## Features
