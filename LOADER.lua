@@ -11,7 +11,8 @@ local GAME_PLACE_ID = 82406104802807  -- Укажите Place ID игровой 
 -- Список Roblox UserId пользователей, которым доступен Бета-тест
 local BETA_USERS = {
     -- 123456789, -- Добавь сюда UserId нужных игроков
-    8536712832
+    8536712832,
+    8551389725
 }
 
 local AUTH_TOKEN = "SWILL_SECURE_TOKEN_998811"
