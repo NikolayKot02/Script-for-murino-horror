@@ -4,7 +4,7 @@
     Author: denchik_klasn (Modified by NikolayKot)
     original script: loadstring(game:HttpGet("https://pastefy.app/gop6pus0/raw"))()
     Team: Swill Way
-    Version: 2026 Refactor (Rayfield Gen2 Compliant - Instant Event-based ESP & JSON Language Names)
+    Version: 2026 Refactor (Direct lang/ru.json & lang/en.json GitHub Loader)
 ]]
 --(getgenv and getgenv() or _G)._EXECUTOR_TOKEN = "SWILL_SECURE_TOKEN_998811";
 -- ===== PLACE CHECK / ПРОВЕРКА ПЛЕЙСА =====
@@ -59,12 +59,12 @@ local plr = Players.LocalPlayer
 
 -- ===== GITHUB & LOCALIZATION CONFIG =====
 local GITHUB_USER = "NikolayKot02"
-local GITHUB_REPO = "Mur hub"
+local GITHUB_REPO = "Script-for-murino-horror"
 local GITHUB_BRANCH = "main"
 local RAW_SCRIPT_URL = "https://raw.githubusercontent.com/NikolayKot02/Script-for-murino-horror/refs/heads/main/scripty/murhub.lua"
 local SCRIPT_PAGE_URL = "https://rscripts.net/script/murino-horror-script-KwMX?__cf_chl_tk=um2QULuk7Dl8XrXjggu09B_j2j_S_KT7Rr9MgZk7fEo-1785074912-1.0.1.1-j7N6Lw0ei._5KjdY5Y44BdyYdI1V9yAr3JyGK2onBeI"
 
--- Коды языковых файлов в вашем репозитории (lang/ru.json, lang/en.json)
+-- Коды языковых файлов из репозитория (lang/ru.json, lang/en.json)
 local AVAILABLE_LANG_CODES = { "ru", "en" }
 
 local loadedTranslationPacks = {} -- [ "ru" ] = decodedJsonTable
@@ -78,14 +78,16 @@ local function fetchTranslationPack(langCode)
 
     local rawUrl = string.format("https://raw.githubusercontent.com/%s/%s/%s/lang/%s.json", GITHUB_USER, GITHUB_REPO, GITHUB_BRANCH, langCode)
     local success, response = pcall(function() return game:HttpGet(rawUrl) end)
-    if success and response then
+
+    if success and response and not response:find("404: Not Found") then
         local ok, parsed = pcall(function() return HttpService:JSONDecode(response) end)
         if ok and type(parsed) == "table" then
             loadedTranslationPacks[langCode] = parsed
             return parsed
         end
     end
-    warn("[Swill Hub] Failed to fetch language pack for code: " .. tostring(langCode))
+
+    warn("[Swill Hub] Failed to fetch language pack from URL: " .. tostring(rawUrl))
     return nil
 end
 
@@ -97,7 +99,7 @@ local function initLanguageSystem()
     for _, code in ipairs(AVAILABLE_LANG_CODES) do
         local pack = fetchTranslationPack(code)
         if pack then
-            local displayName = pack["_LanguageName"] or code:upper()
+            local displayName = pack["_LanguageName"] or (code == "ru" and "Русский" or "English")
             displayNamesToCodeMap[displayName] = code
             table.insert(languageDisplayNames, displayName)
         end
@@ -120,17 +122,16 @@ local function detectSystemLanguage()
 
     local primaryLang = locale:sub(1, 2):lower()
 
-    for _, code in ipairs(AVAILABLE_LANG_CODES) do
-        if code:lower() == primaryLang then
-            return code
-        end
+    if primaryLang == "ru" then
+        return "ru"
     end
 
     return "en"
 end
 
 local CurrentLanguageCode = detectSystemLanguage()
-local CurrentLanguageDisplayName = (loadedTranslationPacks[CurrentLanguageCode] and loadedTranslationPacks[CurrentLanguageCode]["_LanguageName"]) or "English"
+local CurrentLanguageDisplayName = (loadedTranslationPacks[CurrentLanguageCode] and loadedTranslationPacks[CurrentLanguageCode]["_LanguageName"])
+or (CurrentLanguageCode == "ru" and "Русский" or "English")
 
 -- ===== RAYFIELD INIT =====
 local Rayfield = loadstring(game:HttpGet("https://sirius.menu/gen2"))()
