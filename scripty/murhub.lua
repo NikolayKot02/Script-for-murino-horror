@@ -4,7 +4,7 @@
     Author: denchik_klasn (Modified by NikolayKot)
     original script: loadstring(game:HttpGet("https://pastefy.app/gop6pus0/raw"))()
     Team: Swill Way
-    Version: 2026 Refactor (Rayfield Gen2 Compliant - Instant Event-based ESP)
+    Version: 2026 Refactor (Rayfield Gen2 Compliant - Instant Event-based ESP & JSON Language Names)
 ]]
 --(getgenv and getgenv() or _G)._EXECUTOR_TOKEN = "SWILL_SECURE_TOKEN_998811";
 -- ===== PLACE CHECK / ПРОВЕРКА ПЛЕЙСА =====
@@ -64,36 +64,55 @@ local GITHUB_BRANCH = "main"
 local RAW_SCRIPT_URL = "https://raw.githubusercontent.com/NikolayKot02/Script-for-murino-horror/refs/heads/main/scripty/murhub.lua"
 local SCRIPT_PAGE_URL = "https://rscripts.net/script/murino-horror-script-KwMX?__cf_chl_tk=um2QULuk7Dl8XrXjggu09B_j2j_S_KT7Rr9MgZk7fEo-1785074912-1.0.1.1-j7N6Lw0ei._5KjdY5Y44BdyYdI1V9yAr3JyGK2onBeI"
 
-local function fetchAvailableLanguages()
-    local languages = {}
-    local apiUrl = string.format("https://api.github.com/repos/%s/%s/contents/lang?ref=%s", GITHUB_USER, GITHUB_REPO, GITHUB_BRANCH)
+-- Коды языковых файлов в вашем репозитории (lang/ru.json, lang/en.json)
+local AVAILABLE_LANG_CODES = { "ru", "en" }
 
-    local success, response = pcall(function() return game:HttpGet(apiUrl) end)
-    if success and response then
-        local ok, data = pcall(function() return HttpService:JSONDecode(response) end)
-        if ok and type(data) == "table" then
-            for _, file in ipairs(data) do
-                local langCode = file.name:match("([^%.]+)%.json$")
-                if langCode then table.insert(languages, langCode) end
-            end
-        end
-    end
-    if #languages == 0 then table.insert(languages, "english") end
-    return languages
-end
+local loadedTranslationPacks = {} -- [ "ru" ] = decodedJsonTable
+local displayNamesToCodeMap = {}  -- [ "Русский" ] = "ru"
+local languageDisplayNames = {}   -- { "Русский", "English" }
 
 local function fetchTranslationPack(langCode)
+    if loadedTranslationPacks[langCode] then
+        return loadedTranslationPacks[langCode]
+    end
+
     local rawUrl = string.format("https://raw.githubusercontent.com/%s/%s/%s/lang/%s.json", GITHUB_USER, GITHUB_REPO, GITHUB_BRANCH, langCode)
     local success, response = pcall(function() return game:HttpGet(rawUrl) end)
     if success and response then
         local ok, parsed = pcall(function() return HttpService:JSONDecode(response) end)
-        if ok then return parsed end
+        if ok and type(parsed) == "table" then
+            loadedTranslationPacks[langCode] = parsed
+            return parsed
+        end
     end
+    warn("[Swill Hub] Failed to fetch language pack for code: " .. tostring(langCode))
     return nil
 end
 
+-- Предзагрузка информации обо всех языках для выпадающего списка
+local function initLanguageSystem()
+    table.clear(displayNamesToCodeMap)
+    table.clear(languageDisplayNames)
+
+    for _, code in ipairs(AVAILABLE_LANG_CODES) do
+        local pack = fetchTranslationPack(code)
+        if pack then
+            local displayName = pack["_LanguageName"] or code:upper()
+            displayNamesToCodeMap[displayName] = code
+            table.insert(languageDisplayNames, displayName)
+        end
+    end
+
+    if #languageDisplayNames == 0 then
+        table.insert(languageDisplayNames, "English")
+        displayNamesToCodeMap["English"] = "en"
+    end
+end
+
+initLanguageSystem()
+
 -- ===== DETECT SYSTEM LANGUAGE =====
-local function detectSystemLanguage(availableLangs)
+local function detectSystemLanguage()
     local locale = "en-us"
     pcall(function()
         locale = LocalizationService.RobloxLocaleId or "en-us"
@@ -101,17 +120,17 @@ local function detectSystemLanguage(availableLangs)
 
     local primaryLang = locale:sub(1, 2):lower()
 
-    for _, lang in ipairs(availableLangs) do
-        if lang:lower() == primaryLang then
-            return lang
+    for _, code in ipairs(AVAILABLE_LANG_CODES) do
+        if code:lower() == primaryLang then
+            return code
         end
     end
 
     return "en"
 end
 
-local availableLangs = fetchAvailableLanguages()
-local CurrentLanguage = detectSystemLanguage(availableLangs)
+local CurrentLanguageCode = detectSystemLanguage()
+local CurrentLanguageDisplayName = (loadedTranslationPacks[CurrentLanguageCode] and loadedTranslationPacks[CurrentLanguageCode]["_LanguageName"]) or "English"
 
 -- ===== RAYFIELD INIT =====
 local Rayfield = loadstring(game:HttpGet("https://sirius.menu/gen2"))()
@@ -153,10 +172,10 @@ local function applyTabTranslations(pack)
 end
 
 -- Register Initial Language
-local initialPack = fetchTranslationPack(CurrentLanguage)
+local initialPack = fetchTranslationPack(CurrentLanguageCode)
 if initialPack then
-    Window:RegisterTranslations({ [CurrentLanguage] = initialPack })
-    Window:SetLocale(CurrentLanguage)
+    Window:RegisterTranslations({ [CurrentLanguageCode] = initialPack })
+    Window:SetLocale(CurrentLanguageCode)
     applyTabTranslations(initialPack)
 end
 
@@ -394,14 +413,12 @@ local function setupGenericEventEsp(espKey, isEnabledFunc, checkMatchFunc, activ
     end
 
     if isEnabledFunc() then
-    -- 1. Инициализация существующих предметов один раз
         for _, obj in ipairs(workspace:GetDescendants()) do
             if checkMatchFunc(obj) then
                 applyEspToObject(obj, getColorFunc(), getLabelFunc(obj), highlightName, activeTable)
             end
         end
 
-        -- 2. Мгновенная подсветка новых спавнящихся предметов (0 сек задержки)
         espConnections[espKey] = workspace.DescendantAdded:Connect(function(child)
             if isScriptRunning and isEnabledFunc() and checkMatchFunc(child) then
                 applyEspToObject(child, getColorFunc(), getLabelFunc(child), highlightName, activeTable)
@@ -1157,21 +1174,24 @@ TabHome:CreateSection({ name = "Language Settings" })
 
 uiElements.LangDropdown = TabHome:CreateDropdown({
     name = "Select Language",
-    options = availableLangs,
-    currentOption = { CurrentLanguage },
+    options = languageDisplayNames,
+    currentOption = { CurrentLanguageDisplayName },
     multipleOptions = false,
     callback = function(Option)
-        local selectedLang = type(Option) == "table" and Option[1] or Option
-        if selectedLang then
-            local langData = fetchTranslationPack(selectedLang)
+        local selectedDisplayName = type(Option) == "table" and Option[1] or Option
+        local selectedCode = displayNamesToCodeMap[selectedDisplayName] or selectedDisplayName
+
+        if selectedCode then
+            local langData = fetchTranslationPack(selectedCode)
             if langData then
-                Window:RegisterTranslations({ [selectedLang] = langData })
-                Window:SetLocale(selectedLang)
+                Window:RegisterTranslations({ [selectedCode] = langData })
+                Window:SetLocale(selectedCode)
                 applyTabTranslations(langData)
-                CurrentLanguage = selectedLang
+                CurrentLanguageCode = selectedCode
+                CurrentLanguageDisplayName = selectedDisplayName
                 Window:Notify({
                     title = "Language Updated",
-                    content = "Language changed to: " .. selectedLang,
+                    content = "Language changed to: " .. selectedDisplayName,
                     duration = 3
                 })
             end
@@ -1562,7 +1582,7 @@ local function getCurrentConfigData()
         DrunEspEnabled = drunEspEnabled,
         ShkafEspEnabled = shkafEspEnabled,
         AutoExecOnTeleport = autoExecOnTeleport,
-        Language = CurrentLanguage
+        Language = CurrentLanguageCode
     }
 end
 
