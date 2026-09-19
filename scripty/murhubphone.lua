@@ -108,7 +108,7 @@ local function detectSystemLanguage(availableLangs)
         end
     end
 
-    return "english"
+    return "en"
 end
 
 local availableLangs = fetchAvailableLanguages()
