@@ -8,16 +8,9 @@
 local LOBBY_PLACE_ID = 72500576874545 -- Укажите Place ID вашего Лобби
 local GAME_PLACE_ID = 82406104802807  -- Укажите Place ID игровой карты
 
--- Список Roblox UserId пользователей, которым доступен Бета-тест
-local BETA_USERS = {
-    -- 123456789, -- Добавь сюда UserId нужных игроков
-    8536712832,
-    8551389725
-}
-
 local AUTH_TOKEN = "SWILL_SECURE_TOKEN_998811"
-local PC_SCRIPT_URL = "https://raw.githubusercontent.com/NikolayKot02/Script-for-murino-horror/refs/heads/main/Skriptmurino.lua"
-local PHONE_SCRIPT_URL = "https://raw.githubusercontent.com/NikolayKot02/Script-for-murino-horror/refs/heads/main/Skriptmurinophone.lua"
+local PC_SCRIPT_URL = "https://raw.githubusercontent.com/NikolayKot02/Script-for-murino-horror/refs/heads/main/scripty/murhub.lua"
+local PHONE_SCRIPT_URL = "https://raw.githubusercontent.com/NikolayKot02/Script-for-murino-horror/refs/heads/main/scripty/murhubphone.lua"
 
 -- ПРЯМЫЕ ССЫЛКИ НА КАРТИНКИ С GITHUB (RAW)
 local PHONE_ICON_URL = "https://raw.githubusercontent.com/NikolayKot02/Script-for-murino-horror/main/resurses/noFilter2.png"
@@ -31,20 +24,6 @@ local UserInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")
 
 local LocalPlayer = Players.LocalPlayer or Players:GetPropertyChangedSignal("LocalPlayer"):Wait()
-
--- Проверка: имеет ли текущий игрок доступ к бета-тесту
-local function isUserInBeta(userId)
-    -- Если список пустой, то доступно всем (для удобства тестов)
-    if #BETA_USERS == 0 then return true end 
-    for _, id in ipairs(BETA_USERS) do
-        if id == userId then
-            return true
-        end
-    end
-    return false
-end
-
-local HAS_BETA_ACCESS = isUserInBeta(LocalPlayer.UserId)
 
 -- Определяем платформу пользователя
 local IS_MOBILE = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
@@ -101,7 +80,7 @@ local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
 MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
-MainFrame.Size = UDim2.new(0, 0, 0, 220) 
+MainFrame.Size = UDim2.new(0, 0, 0, 220)
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 MainFrame.BorderSizePixel = 0
 MainFrame.ClipsDescendants = true
@@ -154,7 +133,7 @@ TitleText.AnchorPoint = Vector2.new(0.5, 0)
 TitleText.Position = UDim2.new(0.5, 0, 0.08, 0)
 TitleText.Size = UDim2.new(0.9, 0, 0, 30)
 TitleText.BackgroundTransparency = 1
-TitleText.Text = "Script for murino horror"
+TitleText.Text = "Mur hub"
 TitleText.TextColor3 = Color3.fromRGB(255, 255, 255)
 TitleText.TextScaled = true
 TitleText.Font = Enum.Font.FredokaOne
@@ -188,20 +167,6 @@ CenterStageText.TextSize = 16
 CenterStageText.Font = Enum.Font.GothamBold
 CenterStageText.TextTransparency = 1
 CenterStageText.Parent = MainFrame
-
--- Постоянная надпись под основным текстом загрузки (для бета-теста)
-local BetaNoticeText = Instance.new("TextLabel")
-BetaNoticeText.Name = "BetaNoticeText"
-BetaNoticeText.AnchorPoint = Vector2.new(0.5, 0)
-BetaNoticeText.Position = UDim2.new(0.5, 0, 0.67, 0)
-BetaNoticeText.Size = UDim2.new(0.9, 0, 0, 20)
-BetaNoticeText.BackgroundTransparency = 1
-BetaNoticeText.Text = "This is a beta test and there are many bugs"
-BetaNoticeText.TextColor3 = Color3.fromRGB(255, 170, 0)
-BetaNoticeText.TextSize = 12
-BetaNoticeText.Font = Enum.Font.GothamMedium
-BetaNoticeText.TextTransparency = 1
-BetaNoticeText.Parent = MainFrame
 
 -- Текст Предупреждения (Ошибки / Лобби)
 local StatusText = Instance.new("TextLabel")
@@ -301,47 +266,17 @@ end
 local PhoneBtn, PhoneStroke, PhoneIcon, PhoneText, PhoneWarn, PhoneWrapper = createPlatformButton("PhoneBtn", "Phone", PHONE_ICON_ASSET, UDim2.new(0, 0, 0, 0))
 local PcBtn, PcStroke, PcIcon, PcText, PcWarn, PcWrapper       = createPlatformButton("PcBtn", "PC", PC_ICON_ASSET, UDim2.new(0.55, 0, 0, 0))
 
--- ===== MINI BETA TEST BUTTON (ПОД КНОПКОЙ PHONE) =====
-local BetaPhoneBtn = Instance.new("TextButton")
-BetaPhoneBtn.Name = "BetaPhoneBtn"
-BetaPhoneBtn.Position = UDim2.new(0, 0, 1, 6)
-BetaPhoneBtn.Size = UDim2.new(1, 0, 0, 20)
-BetaPhoneBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
-BetaPhoneBtn.Text = "Beta Test"
-BetaPhoneBtn.TextColor3 = Color3.fromRGB(0, 180, 255)
-BetaPhoneBtn.Font = Enum.Font.GothamBold
-BetaPhoneBtn.TextSize = 11
-BetaPhoneBtn.BackgroundTransparency = 1
-BetaPhoneBtn.TextTransparency = 1
-BetaPhoneBtn.Visible = HAS_BETA_ACCESS -- Видимость зависит от прав бета-теста
-BetaPhoneBtn.Parent = PhoneWrapper
-
-local BetaCorner = Instance.new("UICorner")
-BetaCorner.CornerRadius = UDim.new(0, 5)
-BetaCorner.Parent = BetaPhoneBtn
-
-local BetaStroke = Instance.new("UIStroke")
-BetaStroke.Color = Color3.fromRGB(0, 140, 220)
-BetaStroke.Thickness = 1
-BetaStroke.Transparency = 1
-BetaStroke.Parent = BetaPhoneBtn
-
-BetaPhoneBtn.MouseEnter:Connect(function()
-    TweenService:Create(BetaPhoneBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 120, 200), TextColor3 = Color3.fromRGB(255, 255, 255)}):Play()
-end)
-BetaPhoneBtn.MouseLeave:Connect(function()
-    TweenService:Create(BetaPhoneBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(35, 35, 45), TextColor3 = Color3.fromRGB(0, 180, 255)}):Play()
-end)
-
 -- ===== PLATFORM & AVAILABILITY LOGIC =====
-local isPhoneDisabled = true      -- Временно отключено ("Coming soon...")
-local isPcDisabled    = IS_MOBILE -- На телефоне кнопка PC не работает
+local isPhoneDisabled = not IS_MOBILE -- На ПК кнопка Phone не работает
+local isPcDisabled    = IS_MOBILE     -- На телефоне кнопка PC не работает
 
 -- Настройка состояния кнопки Phone
-PhoneIcon.Image = CLOSE_ICON_ASSET
-PhoneText.TextColor3 = Color3.fromRGB(120, 120, 130)
-PhoneBtn.AutoButtonColor = false
-PhoneWarn.Text = "Coming soon..."
+if isPhoneDisabled then
+    PhoneIcon.Image = CLOSE_ICON_ASSET
+    PhoneText.TextColor3 = Color3.fromRGB(120, 120, 130)
+    PhoneBtn.AutoButtonColor = false
+    PhoneWarn.Text = "System does not support this script"
+end
 
 -- Настройка состояния кнопки PC
 if isPcDisabled then
@@ -411,19 +346,13 @@ if currentPlaceId == LOBBY_PLACE_ID then
     TweenService:Create(StatusText, tweenInfoFast, {TextTransparency = 0}):Play()
 elseif currentPlaceId == GAME_PLACE_ID then
     ButtonsFrame.Visible = true
-    
+
     TweenService:Create(PhoneBtn, tweenInfoFast, {BackgroundTransparency = 0}):Play()
     TweenService:Create(PhoneIcon, tweenInfoFast, {ImageTransparency = 0}):Play()
     TweenService:Create(PhoneText, tweenInfoFast, {TextTransparency = 0}):Play()
     TweenService:Create(PhoneStroke, tweenInfoFast, {Transparency = 0}):Play()
     if PhoneWarn.Text ~= "" then
         TweenService:Create(PhoneWarn, tweenInfoFast, {TextTransparency = 0}):Play()
-    end
-    
-    -- Проявление мини-кнопки Бета-теста (только для разрешенных пользователей)
-    if HAS_BETA_ACCESS then
-        TweenService:Create(BetaPhoneBtn, tweenInfoFast, {BackgroundTransparency = 0, TextTransparency = 0}):Play()
-        TweenService:Create(BetaStroke, tweenInfoFast, {Transparency = 0}):Play()
     end
 
     TweenService:Create(PcBtn, tweenInfoFast, {BackgroundTransparency = 0}):Play()
@@ -439,17 +368,12 @@ else
 end
 
 -- Функция запуска загрузки после клика
-local function startLoadingProcess(scriptUrl, isBeta)
+local function startLoadingProcess(scriptUrl)
     TweenService:Create(PhoneBtn, tweenInfoFast, {BackgroundTransparency = 1}):Play()
     TweenService:Create(PhoneIcon, tweenInfoFast, {ImageTransparency = 1}):Play()
     TweenService:Create(PhoneText, tweenInfoFast, {TextTransparency = 1}):Play()
     TweenService:Create(PhoneStroke, tweenInfoFast, {Transparency = 1}):Play()
     TweenService:Create(PhoneWarn, tweenInfoFast, {TextTransparency = 1}):Play()
-
-    if HAS_BETA_ACCESS then
-        TweenService:Create(BetaPhoneBtn, tweenInfoFast, {BackgroundTransparency = 1, TextTransparency = 1}):Play()
-        TweenService:Create(BetaStroke, tweenInfoFast, {Transparency = 1}):Play()
-    end
 
     TweenService:Create(PcBtn, tweenInfoFast, {BackgroundTransparency = 1}):Play()
     TweenService:Create(PcIcon, tweenInfoFast, {ImageTransparency = 1}):Play()
@@ -463,11 +387,6 @@ local function startLoadingProcess(scriptUrl, isBeta)
     ButtonsFrame.Visible = false
     CloseBtn.Visible = false
 
-    -- Показываем предупреждающую надпись только в режиме бета-теста
-    if isBeta then
-        TweenService:Create(BetaNoticeText, tweenInfoFast, {TextTransparency = 0}):Play()
-    end
-
     LoadingFrame.Visible = true
     TweenService:Create(LoadingText, tweenInfoFast, {TextTransparency = 0}):Play()
     for _, dot in ipairs(dots) do
@@ -475,12 +394,12 @@ local function startLoadingProcess(scriptUrl, isBeta)
     end
 
     local isLoading = true
-    
+
     task.spawn(function()
         while isLoading do
             for i, dot in ipairs(dots) do
                 if not isLoading then break end
-                
+
                 local upTween = TweenService:Create(dot, TweenInfo.new(0.2, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
                     Position = UDim2.new(0, 90 + (i * 12), 0, -6),
                     TextColor3 = Color3.fromRGB(0, 170, 255)
@@ -489,7 +408,7 @@ local function startLoadingProcess(scriptUrl, isBeta)
                     Position = UDim2.new(0, 90 + (i * 12), 0, 0),
                     TextColor3 = Color3.fromRGB(255, 255, 255)
                 })
-                
+
                 upTween:Play()
                 upTween.Completed:Wait()
                 downTween:Play()
@@ -505,7 +424,7 @@ local function startLoadingProcess(scriptUrl, isBeta)
     task.spawn(function()
         for i, stage in ipairs(stages) do
             if not isLoading then break end
-            
+
             CenterStageText.Text = stage
             local fadeIn = TweenService:Create(CenterStageText, TweenInfo.new(fadeTime, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextTransparency = 0})
             fadeIn:Play()
@@ -523,9 +442,6 @@ local function startLoadingProcess(scriptUrl, isBeta)
     isLoading = false
 
     TweenService:Create(CenterStageText, TweenInfo.new(0.3), {TextTransparency = 1}):Play()
-    if isBeta then
-        TweenService:Create(BetaNoticeText, TweenInfo.new(0.3), {TextTransparency = 1}):Play()
-    end
 
     LoadingText.Text = "Done"
     for _, dot in ipairs(dots) do
@@ -566,18 +482,14 @@ end
 -- ОБРАБОТКА КЛИКОВ (С проверкой доступности)
 PhoneBtn.MouseButton1Click:Connect(function()
     if isPhoneDisabled then
-        return -- Заблокировано (Coming soon...)
+        return -- Заблокировано для ПК
     end
-    startLoadingProcess(PHONE_SCRIPT_URL, false)
-end)
-
-BetaPhoneBtn.MouseButton1Click:Connect(function()
-    startLoadingProcess(PHONE_SCRIPT_URL, true)
+    startLoadingProcess(PHONE_SCRIPT_URL)
 end)
 
 PcBtn.MouseButton1Click:Connect(function()
     if isPcDisabled then
         return -- Заблокировано для мобильных устройств
     end
-    startLoadingProcess(PC_SCRIPT_URL, false)
+    startLoadingProcess(PC_SCRIPT_URL)
 end)

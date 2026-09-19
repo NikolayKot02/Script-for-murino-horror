@@ -1,4 +1,4 @@
-# Script for Murino Horror
+# Mur hub
 
 Official script repository for the **Murino Horror** game in Roblox.
 
@@ -11,7 +11,7 @@ Official script repository for the **Murino Horror** game in Roblox.
 
 * **Animated Loader (`LOADER.lua`)**:
 
-* **Swill Mega Hub (`Skriptmurino.lua`)**:
+* **Swill Mega Hub (`scripty/murhub.lua`)**:
   * **Coin Farm**: Automatically finds and collects coins across the map.
   * **ESP (Visuals)**: Highlights items (Coins, Axe, Bandage, Flashlight) and monsters (Artur, AntonChigur, Drun) through walls.
   * **Player Tweaks**: Noclip, Fly with customizable speed, adjustable WalkSpeed.

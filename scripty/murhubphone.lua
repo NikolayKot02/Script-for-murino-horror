@@ -1,11 +1,26 @@
 --[[
     SWILL CORE // MEGA HUB WITH INSANE HOLY SPICE + ANTI ARTUR + GITHUB LOCALIZATION
-    Full feature set + INSANE Holy Spice + Auto Artur TP + Config System + OPTIMIZED ESP (Coins, Axe, Bandage, Flashlight, Artur, AntonChigur, Drun) + Fly Feature + Unload Script
+    Full feature set + INSANE Holy Spice + Auto Artur TP + Config System + OPTIMIZED EVENT-BASED ESP + Custom ESP Colors + Smooth Fly/Noclip (RunService) + Unload Script
     Author: denchik_klasn (Modified by NikolayKot)
     original script: loadstring(game:HttpGet("https://pastefy.app/gop6pus0/raw"))()
     Team: Swill Way
-    Version: 2026 Refactor (Rayfield Gen2 Compliant)
+    Version: 2026 Refactor (Rayfield Gen2 Compliant - Instant Event-based ESP - Mobile Adapted)
 ]]
+-- ===== PLACE CHECK / ПРОВЕРКА ПЛЕЙСА =====
+local TARGET_PLACE_ID = 82406104802807
+
+if TARGET_PLACE_ID ~= 0 and game.PlaceId ~= TARGET_PLACE_ID then
+    warn("[Swill Hub] Script execution restricted: Incorrect Place ID (" .. tostring(game.PlaceId) .. "). Target Place ID: " .. tostring(TARGET_PLACE_ID))
+
+    pcall(function()
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "Swill Hub Error",
+            Text = "Скрипт предназначен только для другого плейса!",
+            Duration = 5
+        })
+    end)
+    return
+end
 
 local configFolder = "SwillHub_Configs"
 local env = getgenv and getgenv() or _G
@@ -15,7 +30,6 @@ local autoexecFile = configFolder .. "/autoexec_state.txt"
 if isfile and readfile and isfile(autoexecFile) then
     local state = readfile(autoexecFile)
     if state == "true" then
-        -- Автоматически выдаём авторизацию, если включен Auto-exec
         env._EXECUTOR_TOKEN = "SWILL_SECURE_TOKEN_998811"
     end
 end
@@ -28,7 +42,6 @@ if env._EXECUTOR_TOKEN ~= AUTH_TOKEN then
     return
 end
 
--- Clear the token immediately after verification for security
 env._EXECUTOR_TOKEN = nil
 
 -- ===== PREVENT DUPLICATE EXECUTION =====
@@ -42,19 +55,20 @@ local HttpService = game:GetService("HttpService")
 local LocalizationService = game:GetService("LocalizationService")
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
 local plr = Players.LocalPlayer
 
 -- ===== GITHUB & LOCALIZATION CONFIG =====
 local GITHUB_USER = "NikolayKot02"
-local GITHUB_REPO = "Script-for-murino-horror"
+local GITHUB_REPO = "Mur hub"
 local GITHUB_BRANCH = "main"
-local RAW_SCRIPT_URL = "https://raw.githubusercontent.com/NikolayKot02/Script-for-murino-horror/refs/heads/main/Skriptmurino.lua"
+local RAW_SCRIPT_URL = "https://raw.githubusercontent.com/NikolayKot02/Script-for-murino-horror/refs/heads/main/scripty/murhub.lua"
 local SCRIPT_PAGE_URL = "https://rscripts.net/script/murino-horror-script-KwMX?__cf_chl_tk=um2QULuk7Dl8XrXjggu09B_j2j_S_KT7Rr9MgZk7fEo-1785074912-1.0.1.1-j7N6Lw0ei._5KjdY5Y44BdyYdI1V9yAr3JyGK2onBeI"
 
 local function fetchAvailableLanguages()
     local languages = {}
     local apiUrl = string.format("https://api.github.com/repos/%s/%s/contents/lang?ref=%s", GITHUB_USER, GITHUB_REPO, GITHUB_BRANCH)
-    
+
     local success, response = pcall(function() return game:HttpGet(apiUrl) end)
     if success and response then
         local ok, data = pcall(function() return HttpService:JSONDecode(response) end)
@@ -65,7 +79,7 @@ local function fetchAvailableLanguages()
             end
         end
     end
-    if #languages == 0 then table.insert(languages, "ru") end
+    if #languages == 0 then table.insert(languages, "english") end
     return languages
 end
 
@@ -85,16 +99,16 @@ local function detectSystemLanguage(availableLangs)
     pcall(function()
         locale = LocalizationService.RobloxLocaleId or "en-us"
     end)
-    
+
     local primaryLang = locale:sub(1, 2):lower()
-    
+
     for _, lang in ipairs(availableLangs) do
         if lang:lower() == primaryLang then
             return lang
         end
     end
-    
-    return "en"
+
+    return "english"
 end
 
 local availableLangs = fetchAvailableLanguages()
@@ -104,7 +118,7 @@ local CurrentLanguage = detectSystemLanguage(availableLangs)
 local Rayfield = loadstring(game:HttpGet("https://sirius.menu/gen2"))()
 
 local Window = Rayfield:CreateWindow({
-    name = "SKRIPT FOR MURINO HORROR",
+    name = "Mur hub",
     subtitle = "by NikolayKot",
     configuration = {
         autoSave = false
@@ -148,8 +162,10 @@ if initialPack then
 end
 
 -- ===== SERVICES =====
-local runService = game:GetService("RunService")
 local lighting = game:GetService("Lighting")
+
+-- Переменная для Stat элемента
+local coinsStat = nil
 
 -- ===== UI ELEMENTS REFERENCES =====
 local uiElements = {
@@ -158,9 +174,11 @@ local uiElements = {
     AxeEspToggle = nil,
     BandageEspToggle = nil,
     FlashlightEspToggle = nil,
+    PillsEspToggle = nil,
     ArturEspToggle = nil,
     AntonChigurEspToggle = nil,
     DrunEspToggle = nil,
+    ShkafEspToggle = nil,
     WalkSpeedToggle = nil,
     SpeedSlider = nil,
     NoclipToggle = nil,
@@ -170,19 +188,19 @@ local uiElements = {
     HolySpiceToggle = nil,
     IntensitySlider = nil,
     AntiArturToggle = nil,
-    ArturTpBtnToggle = nil,
     MonsterNotifyToggle = nil,
     AutoTeleportToggle = nil,
     ConfigDropdown = nil,
-    LangDropdown = nil
+    LangDropdown = nil,
+    ShowFlyBtnToggle = nil,
+    ShowNoclipBtnToggle = nil,
+    ShowArturBtnToggle = nil
 }
 
 -- ===== EXECUTOR ENVIRONMENT HELPERS =====
 local fire_prompt = env.fireproximityprompt or fireproximityprompt
 local queue_tp = env.queue_on_teleport or (env.syn and env.syn.queue_on_teleport) or (env.fluxus and env.fluxus.queue_on_teleport)
-local set_clipboard = env.setclipboard 
-    or setclipboard 
-    or (env.syn and env.syn.write_clipboard)
+local set_clipboard = env.setclipboard or setclipboard or (env.syn and env.syn.write_clipboard)
 
 -- ===== VARIABLES =====
 local isScriptRunning = true
@@ -190,34 +208,44 @@ local farming = false
 local collected = 0
 local farmThread = nil
 
+-- ESP Colors
+local coinsEspColor = Color3.fromRGB(255, 215, 0)
+local axeEspColor = Color3.fromRGB(0, 191, 255)
+local bandageEspColor = Color3.fromRGB(0, 255, 127)
+local flashlightEspColor = Color3.fromRGB(255, 255, 0)
+local pillsEspColor = Color3.fromRGB(0, 255, 255)
+local shkafEspColor = Color3.fromRGB(0, 255, 0)
+local arturEspColor = Color3.fromRGB(255, 0, 0)
+local antonChigurEspColor = Color3.fromRGB(138, 43, 226)
+local drunEspColor = Color3.fromRGB(255, 140, 0)
+
 -- ESP States & Data
 local coinsEspEnabled = false
-local coinsEspThread = nil
 local activeCoinsEspHighlights = {}
 
 local axeEspEnabled = false
-local axeEspThread = nil
 local activeAxeEspHighlights = {}
 
 local bandageEspEnabled = false
-local bandageEspThread = nil
 local activeBandageEspHighlights = {}
 
 local flashlightEspEnabled = false
-local flashlightEspThread = nil
 local activeFlashlightEspHighlights = {}
 
+local pillsEspEnabled = false
+local activePillsEspHighlights = {}
+
 local arturEspEnabled = false
-local arturEspThread = nil
 local activeArturEspHighlights = {}
 
 local antonChigurEspEnabled = false
-local antonChigurEspThread = nil
 local activeAntonChigurEspHighlights = {}
 
 local drunEspEnabled = false
-local drunEspThread = nil
 local activeDrunEspHighlights = {}
+
+local shkafEspEnabled = false
+local activeShkafEspHighlights = {}
 
 -- Monster Spawn Notifications
 local monsterNotifyEnabled = false
@@ -231,11 +259,14 @@ local walkspeedConnection = nil
 
 -- Noclip
 local noclipEnabled = false
+local noclipConnection = nil
 
 -- Fly
 local flyEnabled = false
 local flySpeed = 50
 local flyConnection = nil
+local flyBodyVelocity = nil
+local flyBodyGyro = nil
 
 -- Fullbright
 local fullbrightEnabled = false
@@ -260,9 +291,6 @@ local antiArturEnabled = false
 local antiArturConnection = nil
 local isTeleportingToArtur = false
 
--- Floating Artur TP Button Variables
-local arturTpButtonGui = nil
-
 -- Auto Exec on Teleport
 local autoExecOnTeleport = false
 local teleportConnection = nil
@@ -276,6 +304,209 @@ local currentConfigNameInput = ""
 if isfolder and makefolder then
     if not isfolder(configFolder) then
         makefolder(configFolder)
+    end
+end
+
+-- ===== MOBILE BUTTONS GUI =====
+local mobileGui = Instance.new("ScreenGui")
+mobileGui.Name = "SwillMobileGui"
+mobileGui.ResetOnSpawn = false
+
+local function makeDraggable(gui)
+    local dragging = false
+    local dragInput, dragStart, startPos
+
+    local function update(input)
+        local delta = input.Position - dragStart
+        gui.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+
+    gui.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = gui.Position
+
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+
+    gui.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            update(input)
+        end
+    end)
+end
+
+local function createMobileButton(name, text, position, callback)
+    local btn = Instance.new("TextButton")
+    btn.Name = name
+    btn.Size = UDim2.new(0, 90, 0, 40)
+    btn.Position = position
+    btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    btn.BackgroundTransparency = 0.3
+    btn.Text = text
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.TextSize = 12
+    btn.Font = Enum.Font.SourceSansBold
+    btn.Visible = false
+    btn.Parent = mobileGui
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = btn
+
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(0, 170, 255)
+    stroke.Thickness = 1.5
+    stroke.Parent = btn
+
+    makeDraggable(btn)
+
+    btn.MouseButton1Click:Connect(callback)
+    return btn
+end
+
+-- Создаем кнопки (по умолчанию Visible = false)
+local mobileFlyBtn = createMobileButton("MobileFlyBtn", "Fly: OFF", UDim2.new(0.02, 0, 0.4, 0), function()
+    toggleFly()
+end)
+
+local mobileNoclipBtn = createMobileButton("MobileNoclipBtn", "Noclip: OFF", UDim2.new(0.02, 0, 0.48, 0), function()
+    toggleNoclip()
+end)
+
+local mobileArturTpBtn = createMobileButton("MobileArturBtn", "TP to Artur", UDim2.new(0.02, 0, 0.56, 0), function()
+    manualTeleportToArtur()
+end)
+
+pcall(function()
+    mobileGui.Parent = game:GetService("CoreGui")
+end)
+
+-- ===== TEXT ESP HELPER FUNCTION =====
+local function createEspLabel(parent, text, color)
+    if not parent then return nil end
+
+    local billboard = parent:FindFirstChild("SwillEspLabel")
+    if not billboard then
+        billboard = Instance.new("BillboardGui")
+        billboard.Name = "SwillEspLabel"
+        billboard.AlwaysOnTop = true
+        billboard.Size = UDim2.new(0, 200, 0, 50)
+        billboard.StudsOffset = Vector3.new(0, 2.5, 0)
+
+        local label = Instance.new("TextLabel")
+        label.Name = "Text"
+        label.Size = UDim2.new(1, 0, 1, 0)
+        label.BackgroundTransparency = 1
+        label.TextSize = 14
+        label.Font = Enum.Font.SourceSansBold
+        label.TextStrokeTransparency = 0
+        label.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+        label.Parent = billboard
+
+        billboard.Parent = parent
+    end
+
+    local textLabel = billboard:FindFirstChild("Text")
+    if textLabel then
+        textLabel.Text = text
+        textLabel.TextColor3 = color
+    end
+
+    return billboard
+end
+
+-- ===== OPTIMIZED EVENT-BASED ESP CORE LOGIC =====
+local espConnections = {}
+
+local function applyEspToObject(item, espColor, labelText, highlightName, activeTable)
+    if not item or not item.Parent or activeTable[item] then return end
+
+    local highlight = Instance.new("Highlight")
+    highlight.Name = highlightName
+    highlight.Adornee = item
+    highlight.FillColor = espColor
+    highlight.FillTransparency = 0.4
+    highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+    highlight.OutlineTransparency = 0
+    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    highlight.Parent = item
+
+    activeTable[item] = highlight
+    createEspLabel(item, labelText or item.Name, espColor)
+end
+
+local function removeEspFromObject(item, activeTable)
+    if activeTable[item] then
+        if activeTable[item].Parent then
+            activeTable[item]:Destroy()
+        end
+        activeTable[item] = nil
+    end
+    if item and item.Parent then
+        local label = item:FindFirstChild("SwillEspLabel")
+        if label then label:Destroy() end
+    end
+end
+
+local function clearEspCategory(activeTable)
+    for item, highlight in pairs(activeTable) do
+        if highlight and highlight.Parent then highlight:Destroy() end
+        if item and item.Parent then
+            local label = item:FindFirstChild("SwillEspLabel")
+            if label then label:Destroy() end
+        end
+    end
+    table.clear(activeTable)
+end
+
+local function setupGenericEventEsp(espKey, isEnabledFunc, checkMatchFunc, activeTable, getColorFunc, getLabelFunc, highlightName)
+    if espConnections[espKey] then
+        espConnections[espKey]:Disconnect()
+        espConnections[espKey] = nil
+    end
+
+    if isEnabledFunc() then
+        for _, obj in ipairs(workspace:GetDescendants()) do
+            if checkMatchFunc(obj) then
+                applyEspToObject(obj, getColorFunc(), getLabelFunc(obj), highlightName, activeTable)
+            end
+        end
+
+        espConnections[espKey] = workspace.DescendantAdded:Connect(function(child)
+            if isScriptRunning and isEnabledFunc() and checkMatchFunc(child) then
+                applyEspToObject(child, getColorFunc(), getLabelFunc(child), highlightName, activeTable)
+            end
+        end)
+    else
+        clearEspCategory(activeTable)
+    end
+end
+
+local function updateEspColorsInTable(activeTable, newColor)
+    for item, highlight in pairs(activeTable) do
+        if highlight and highlight.Parent then
+            highlight.FillColor = newColor
+        end
+        if item and item.Parent then
+            local billboard = item:FindFirstChild("SwillEspLabel")
+            if billboard then
+                local label = billboard:FindFirstChild("Text")
+                if label then label.TextColor3 = newColor end
+            end
+        end
     end
 end
 
@@ -349,11 +580,11 @@ local function updateWalkspeed()
 end
 
 local function startWalkspeed()
-    if walkspeedConnection then 
-        walkspeedConnection:Disconnect() 
+    if walkspeedConnection then
+        walkspeedConnection:Disconnect()
     end
     walkspeedEnabled = true
-    walkspeedConnection = runService.Heartbeat:Connect(updateWalkspeed)
+    walkspeedConnection = RunService.Heartbeat:Connect(updateWalkspeed)
 end
 
 local function stopWalkspeed()
@@ -365,58 +596,52 @@ local function stopWalkspeed()
     local char = plr.Character
     if char then
         local humanoid = char:FindFirstChildOfClass("Humanoid")
-        if humanoid then 
-            humanoid.WalkSpeed = 16 
+        if humanoid then
+            humanoid.WalkSpeed = 16
         end
     end
 end
 
 -- ===== NOCLIP =====
-local function noclipLoop()
-    while noclipEnabled and isScriptRunning do
-        local char = plr.Character
-        if char then
-            for _, part in pairs(char:GetDescendants()) do
-                if part:IsA("BasePart") then
+local function startNoclip()
+    if noclipEnabled then return end
+    noclipEnabled = true
+    if mobileNoclipBtn then mobileNoclipBtn.Text = "Noclip: ON" end
+
+    if noclipConnection then noclipConnection:Disconnect() end
+    noclipConnection = RunService.Stepped:Connect(function()
+        if noclipEnabled and isScriptRunning and plr.Character then
+            for _, part in ipairs(plr.Character:GetDescendants()) do
+                if part:IsA("BasePart") and part.CanCollide then
                     part.CanCollide = false
                 end
             end
         end
-        task.wait(0.1)
-    end
-end
-
-local function startNoclip()
-    if noclipEnabled then return end
-    noclipEnabled = true
-    task.spawn(noclipLoop)
+    end)
 end
 
 local function stopNoclip()
     noclipEnabled = false
-    local char = plr.Character
-    if char then
-        for _, part in pairs(char:GetDescendants()) do
-            if part:IsA("BasePart") and (part.Name == "HumanoidRootPart" or part.Name == "Head" or part.Name == "Torso" or part.Name == "UpperTorso" or part.Name == "LowerTorso") then
-                part.CanCollide = true
-            end
-        end
+    if mobileNoclipBtn then mobileNoclipBtn.Text = "Noclip: OFF" end
+    if noclipConnection then
+        noclipConnection:Disconnect()
+        noclipConnection = nil
     end
 end
 
-local function toggleNoclip(state)
-    if state == nil then 
-        state = not noclipEnabled 
+function toggleNoclip(state)
+    if state == nil then
+        state = not noclipEnabled
     end
-    
-    if state then 
-        startNoclip() 
-    else 
-        stopNoclip() 
+
+    if state then
+        startNoclip()
+    else
+        stopNoclip()
     end
-    
-    if uiElements.NoclipToggle and uiElements.NoclipToggle.Set then 
-        uiElements.NoclipToggle:Set(noclipEnabled) 
+
+    if uiElements.NoclipToggle and uiElements.NoclipToggle.Set then
+        uiElements.NoclipToggle:Set(noclipEnabled)
     end
 end
 
@@ -424,79 +649,70 @@ end
 local function startFly()
     if flyEnabled then return end
     flyEnabled = true
+    if mobileFlyBtn then mobileFlyBtn.Text = "Fly: ON" end
 
-    local char = plr.Character or plr.CharacterAdded:Wait()
-    local root = char:WaitForChild("HumanoidRootPart")
+    local char = plr.Character
+    if not char then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
     local humanoid = char:FindFirstChildOfClass("Humanoid")
+    if not hrp or not humanoid then return end
 
-    local bv = Instance.new("BodyVelocity")
-    bv.Name = "SwillFlyBV"
-    bv.MaxForce = Vector3.new(1e9, 1e9, 1e9)
-    bv.Velocity = Vector3.zero
-    bv.Parent = root
+    humanoid.PlatformStand = true
 
-    local bg = Instance.new("BodyGyro")
-    bg.Name = "SwillFlyBG"
-    bg.MaxTorque = Vector3.new(1e9, 1e9, 1e9)
-    bg.P = 9e4
-    bg.CFrame = root.CFrame
-    bg.Parent = root
+    flyBodyVelocity = Instance.new("BodyVelocity")
+    flyBodyVelocity.MaxForce = Vector3.new(1e9, 1e9, 1e9)
+    flyBodyVelocity.Velocity = Vector3.zero
+    flyBodyVelocity.Parent = hrp
 
-    if humanoid then humanoid.PlatformStand = true end
+    flyBodyGyro = Instance.new("BodyGyro")
+    flyBodyGyro.MaxTorque = Vector3.new(1e9, 1e9, 1e9)
+    flyBodyGyro.CFrame = hrp.CFrame
+    flyBodyGyro.Parent = hrp
 
-    flyConnection = runService.RenderStepped:Connect(function()
-        if not flyEnabled or not isScriptRunning or not root or not root.Parent then
-            if bv then bv:Destroy() end
-            if bg then bg:Destroy() end
-            if humanoid then humanoid.PlatformStand = false end
-            if flyConnection then flyConnection:Disconnect() end
+    if flyConnection then flyConnection:Disconnect() end
+    flyConnection = RunService.RenderStepped:Connect(function()
+        if not flyEnabled or not isScriptRunning or not hrp or not hrp.Parent then
+            stopFly()
             return
         end
 
         local camera = workspace.CurrentCamera
-        local moveDir = Vector3.zero
+        local moveVector = Vector3.zero
 
-        if UserInputService:IsKeyDown(Enum.KeyCode.W) then
-            moveDir = moveDir + camera.CFrame.LookVector
-        end
-        if UserInputService:IsKeyDown(Enum.KeyCode.S) then
-            moveDir = moveDir - camera.CFrame.LookVector
-        end
-        if UserInputService:IsKeyDown(Enum.KeyCode.A) then
-            moveDir = moveDir - camera.CFrame.RightVector
-        end
-        if UserInputService:IsKeyDown(Enum.KeyCode.D) then
-            moveDir = moveDir + camera.CFrame.RightVector
-        end
-        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
-            moveDir = moveDir + Vector3.new(0, 1, 0)
-        end
-        if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
-            moveDir = moveDir - Vector3.new(0, 1, 0)
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveVector += camera.CFrame.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveVector -= camera.CFrame.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveVector -= camera.CFrame.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveVector += camera.CFrame.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveVector += Vector3.new(0, 1, 0) end
+        if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then moveVector -= Vector3.new(0, 1, 0) end
+
+        if humanoid and humanoid.MoveDirection.Magnitude > 0 then
+            moveVector += humanoid.MoveDirection
         end
 
-        if moveDir.Magnitude > 0 then
-            bv.Velocity = moveDir.Unit * flySpeed
+        flyBodyGyro.CFrame = camera.CFrame
+        if moveVector.Magnitude > 0 then
+            flyBodyVelocity.Velocity = moveVector.Unit * flySpeed
         else
-            bv.Velocity = Vector3.zero
+            flyBodyVelocity.Velocity = Vector3.zero
         end
-        bg.CFrame = camera.CFrame
     end)
 end
 
 local function stopFly()
     flyEnabled = false
+    if mobileFlyBtn then mobileFlyBtn.Text = "Fly: OFF" end
+
     if flyConnection then
         flyConnection:Disconnect()
         flyConnection = nil
     end
+
+    if flyBodyVelocity then flyBodyVelocity:Destroy() flyBodyVelocity = nil end
+    if flyBodyGyro then flyBodyGyro:Destroy() flyBodyGyro = nil end
+
     local char = plr.Character
     if char then
-        local root = char:FindFirstChild("HumanoidRootPart")
-        if root then
-            if root:FindFirstChild("SwillFlyBV") then root.SwillFlyBV:Destroy() end
-            if root:FindFirstChild("SwillFlyBG") then root.SwillFlyBG:Destroy() end
-        end
         local humanoid = char:FindFirstChildOfClass("Humanoid")
         if humanoid then
             humanoid.PlatformStand = false
@@ -504,7 +720,7 @@ local function stopFly()
     end
 end
 
-local function toggleFly(state)
+function toggleFly(state)
     if state == nil then
         state = not flyEnabled
     end
@@ -557,25 +773,25 @@ end
 local function holySpiceLoop()
     local hue = 0
     local intensity = holySpiceIntensity
-    
+
     while holySpiceEnabled and isScriptRunning do
         hue = (hue + 2 * intensity) % 360
         local color1 = Color3.fromHSV(hue / 360, 1, 1)
         local color2 = Color3.fromHSV((hue + 180) / 360, 1, 1)
         local color3 = Color3.fromHSV((hue + 90) / 360, 1, 1)
         local color4 = Color3.fromHSV((hue + 270) / 360, 1, 1)
-        
+
         lighting.Ambient = color1
         lighting.OutdoorAmbient = color2
         lighting.ColorShift_Bottom = color3
         lighting.ColorShift_Top = color4
-        
+
         lighting.Brightness = 0.5 + (math.sin(tick() * intensity * 2) * 1.5)
         lighting.FogEnd = 100 + (math.sin(tick() * intensity) * 500)
         lighting.FogColor = color1
         lighting.ClockTime = (tick() * 0.1) % 24
         lighting.GlobalShadows = math.random(0, 1) == 1
-        
+
         if math.random(1, 10) == 1 then
             lighting.Brightness = 5
             task.wait(0.05)
@@ -636,13 +852,13 @@ local function activate(coin)
     prompt.HoldDuration = 0
     prompt.MaxActivationDistance = 100
     prompt.RequiresLineOfSight = false
-    
-    local success = pcall(function() 
+
+    local success = pcall(function()
         if fire_prompt then
             fire_prompt(prompt)
         end
     end)
-    
+
     prompt.HoldDuration, prompt.MaxActivationDistance, prompt.RequiresLineOfSight = oldHold, oldDist, oldLOS
     return success
 end
@@ -656,8 +872,11 @@ local function farmLoop()
                 if coin.model and coin.model.Parent then
                     if tpTo(coin) then
                         task.wait(0.3)
-                        if activate(coin) then 
-                            collected = collected + 1 
+                        if activate(coin) then
+                            collected = collected + 1
+                            if coinsStat and coinsStat.Set then
+                                coinsStat:Set(collected)
+                            end
                         end
                     end
                 end
@@ -673,7 +892,6 @@ end
 local function startFarm()
     if farming then return end
     farming = true
-    collected = 0
     farmThread = task.spawn(farmLoop)
 end
 
@@ -682,470 +900,122 @@ local function stopFarm()
     if farmThread then farmThread = nil end
 end
 
--- ===== COINS ESP LOGIC =====
-local function clearCoinsEsp()
-    for model, highlight in pairs(activeCoinsEspHighlights) do
-        if highlight and highlight.Parent then highlight:Destroy() end
-    end
-    table.clear(activeCoinsEspHighlights)
+-- ===== EVENT ESP WRAPPERS =====
+local function toggleCoinsEsp(v)
+    coinsEspEnabled = v
+    setupGenericEventEsp(
+        "Coins",
+        function() return coinsEspEnabled end,
+        function(obj) return obj.Name == "Coins" and obj:IsA("Model") end,
+        activeCoinsEspHighlights,
+        function() return coinsEspColor end,
+        function() return "Coin" end,
+        "SwillCoinEsp"
+    )
 end
 
-local function updateCoinsEsp()
-    if not coinsEspEnabled or not isScriptRunning then return end
-    local coins = findCoins()
-    local currentModels = {}
-
-    for _, coinData in ipairs(coins) do
-        local model = coinData.model
-        if model and model.Parent then
-            currentModels[model] = true
-            if not activeCoinsEspHighlights[model] then
-                local highlight = Instance.new("Highlight")
-                highlight.Name = "SwillCoinEsp"
-                highlight.Adornee = model
-                highlight.FillColor = Color3.fromRGB(255, 215, 0)
-                highlight.FillTransparency = 0.4
-                highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-                highlight.OutlineTransparency = 0
-                highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-                highlight.Parent = model
-
-                activeCoinsEspHighlights[model] = highlight
-            end
-        end
-    end
-
-    for model, highlight in pairs(activeCoinsEspHighlights) do
-        if not currentModels[model] then
-            if highlight and highlight.Parent then highlight:Destroy() end
-            activeCoinsEspHighlights[model] = nil
-        end
-    end
+local function toggleAxeEsp(v)
+    axeEspEnabled = v
+    setupGenericEventEsp(
+        "Axe",
+        function() return axeEspEnabled end,
+        function(obj) return obj.Name == "Axe" and (obj:IsA("Model") or obj:IsA("BasePart") or obj:IsA("Tool")) end,
+        activeAxeEspHighlights,
+        function() return axeEspColor end,
+        function() return "Axe" end,
+        "SwillAxeEsp"
+    )
 end
 
-local function startCoinsEsp()
-    if coinsEspEnabled then return end
-    coinsEspEnabled = true
-    coinsEspThread = task.spawn(function()
-        while coinsEspEnabled and isScriptRunning do
-            updateCoinsEsp()
-            task.wait(7)
-        end
-    end)
+local function toggleBandageEsp(v)
+    bandageEspEnabled = v
+    setupGenericEventEsp(
+        "Bandage",
+        function() return bandageEspEnabled end,
+        function(obj) return (obj.Name == "Bandage" or obj.Name == "Medkit") and (obj:IsA("Model") or obj:IsA("BasePart") or obj:IsA("Tool")) end,
+        activeBandageEspHighlights,
+        function() return bandageEspColor end,
+        function() return "Bandage" end,
+        "SwillBandageEsp"
+    )
 end
 
-local function stopCoinsEsp()
-    coinsEspEnabled = false
-    if coinsEspThread then coinsEspThread = nil end
-    clearCoinsEsp()
+local function toggleFlashlightEsp(v)
+    flashlightEspEnabled = v
+    setupGenericEventEsp(
+        "Flashlight",
+        function() return flashlightEspEnabled end,
+        function(obj) return obj.Name == "Flashlight" and (obj:IsA("Model") or obj:IsA("BasePart") or obj:IsA("Tool")) end,
+        activeFlashlightEspHighlights,
+        function() return flashlightEspColor end,
+        function() return "Flashlight" end,
+        "SwillFlashlightEsp"
+    )
 end
 
--- ===== AXE ESP LOGIC =====
-local function findAxes()
-    local axes = {}
-    for _, item in pairs(workspace:GetDescendants()) do
-        if item.Name == "Axe" and (item:IsA("Model") or item:IsA("BasePart") or item:IsA("Tool")) then
-            table.insert(axes, item)
-        end
-    end
-    return axes
+local function togglePillsEsp(v)
+    pillsEspEnabled = v
+    setupGenericEventEsp(
+        "Pills",
+        function() return pillsEspEnabled end,
+        function(obj) return (obj.Name == "Pills" or obj.Name == "Pill") and (obj:IsA("Model") or obj:IsA("BasePart") or obj:IsA("Tool")) end,
+        activePillsEspHighlights,
+        function() return pillsEspColor end,
+        function() return "Pills" end,
+        "SwillPillsEsp"
+    )
 end
 
-local function clearAxeEsp()
-    for item, highlight in pairs(activeAxeEspHighlights) do
-        if highlight and highlight.Parent then highlight:Destroy() end
-    end
-    table.clear(activeAxeEspHighlights)
+local function toggleShkafEsp(v)
+    shkafEspEnabled = v
+    setupGenericEventEsp(
+        "Shkaf",
+        function() return shkafEspEnabled end,
+        function(obj) return obj.Name == "Shkaf" end,
+        activeShkafEspHighlights,
+        function() return shkafEspColor end,
+        function() return "Cabinet" end,
+        "SwillShkafEsp"
+    )
 end
 
-local function updateAxeEsp()
-    if not axeEspEnabled or not isScriptRunning then return end
-    local axes = findAxes()
-    local currentItems = {}
-
-    for _, item in ipairs(axes) do
-        if item and item.Parent then
-            currentItems[item] = true
-            if not activeAxeEspHighlights[item] then
-                local highlight = Instance.new("Highlight")
-                highlight.Name = "SwillAxeEsp"
-                highlight.Adornee = item
-                highlight.FillColor = Color3.fromRGB(0, 191, 255)
-                highlight.FillTransparency = 0.4
-                highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-                highlight.OutlineTransparency = 0
-                highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-                highlight.Parent = item
-
-                activeAxeEspHighlights[item] = highlight
-            end
-        end
-    end
-
-    for item, highlight in pairs(activeAxeEspHighlights) do
-        if not currentItems[item] then
-            if highlight and highlight.Parent then highlight:Destroy() end
-            activeAxeEspHighlights[item] = nil
-        end
-    end
+local function toggleArturEsp(v)
+    arturEspEnabled = v
+    setupGenericEventEsp(
+        "Artur",
+        function() return arturEspEnabled end,
+        function(obj) return obj.Name == "Artur" and (obj:IsA("Model") or obj:IsA("BasePart")) end,
+        activeArturEspHighlights,
+        function() return arturEspColor end,
+        function() return "Artur" end,
+        "SwillArturEsp"
+    )
 end
 
-local function startAxeEsp()
-    if axeEspEnabled then return end
-    axeEspEnabled = true
-    axeEspThread = task.spawn(function()
-        while axeEspEnabled and isScriptRunning do
-            updateAxeEsp()
-            task.wait(7)
-        end
-    end)
+local function toggleAntonChigurEsp(v)
+    antonChigurEspEnabled = v
+    setupGenericEventEsp(
+        "Anton",
+        function() return antonChigurEspEnabled end,
+        function(obj) return (obj.Name == "AntonChigur" or obj.Name == "Anton") and (obj:IsA("Model") or obj:IsA("BasePart")) end,
+        activeAntonChigurEspHighlights,
+        function() return antonChigurEspColor end,
+        function() return "Anton Chigur" end,
+        "SwillAntonEsp"
+    )
 end
 
-local function stopAxeEsp()
-    axeEspEnabled = false
-    if axeEspThread then axeEspThread = nil end
-    clearAxeEsp()
-end
-
--- ===== BANDAGE ESP LOGIC =====
-local function findBandages()
-    local bandages = {}
-    for _, item in pairs(workspace:GetDescendants()) do
-        if (item.Name == "Bandage" or item.Name == "Medkit") and (item:IsA("Model") or item:IsA("BasePart") or item:IsA("Tool")) then
-            table.insert(bandages, item)
-        end
-    end
-    return bandages
-end
-
-local function clearBandageEsp()
-    for item, highlight in pairs(activeBandageEspHighlights) do
-        if highlight and highlight.Parent then highlight:Destroy() end
-    end
-    table.clear(activeBandageEspHighlights)
-end
-
-local function updateBandageEsp()
-    if not bandageEspEnabled or not isScriptRunning then return end
-    local items = findBandages()
-    local currentItems = {}
-
-    for _, item in ipairs(items) do
-        if item and item.Parent then
-            currentItems[item] = true
-            if not activeBandageEspHighlights[item] then
-                local highlight = Instance.new("Highlight")
-                highlight.Name = "SwillBandageEsp"
-                highlight.Adornee = item
-                highlight.FillColor = Color3.fromRGB(0, 255, 127)
-                highlight.FillTransparency = 0.4
-                highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-                highlight.OutlineTransparency = 0
-                highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-                highlight.Parent = item
-
-                activeBandageEspHighlights[item] = highlight
-            end
-        end
-    end
-
-    for item, highlight in pairs(activeBandageEspHighlights) do
-        if not currentItems[item] then
-            if highlight and highlight.Parent then highlight:Destroy() end
-            activeBandageEspHighlights[item] = nil
-        end
-    end
-end
-
-local function startBandageEsp()
-    if bandageEspEnabled then return end
-    bandageEspEnabled = true
-    bandageEspThread = task.spawn(function()
-        while bandageEspEnabled and isScriptRunning do
-            updateBandageEsp()
-            task.wait(7)
-        end
-    end)
-end
-
-local function stopBandageEsp()
-    bandageEspEnabled = false
-    if bandageEspThread then bandageEspThread = nil end
-    clearBandageEsp()
-end
-
--- ===== FLASHLIGHT ESP LOGIC =====
-local function findFlashlights()
-    local flashlights = {}
-    for _, item in pairs(workspace:GetDescendants()) do
-        if item.Name == "Flashlight" and (item:IsA("Model") or item:IsA("BasePart") or item:IsA("Tool")) then
-            table.insert(flashlights, item)
-        end
-    end
-    return flashlights
-end
-
-local function clearFlashlightEsp()
-    for item, highlight in pairs(activeFlashlightEspHighlights) do
-        if highlight and highlight.Parent then highlight:Destroy() end
-    end
-    table.clear(activeFlashlightEspHighlights)
-end
-
-local function updateFlashlightEsp()
-    if not flashlightEspEnabled or not isScriptRunning then return end
-    local items = findFlashlights()
-    local currentItems = {}
-
-    for _, item in ipairs(items) do
-        if item and item.Parent then
-            currentItems[item] = true
-            if not activeFlashlightEspHighlights[item] then
-                local highlight = Instance.new("Highlight")
-                highlight.Name = "SwillFlashlightEsp"
-                highlight.Adornee = item
-                highlight.FillColor = Color3.fromRGB(255, 255, 0)
-                highlight.FillTransparency = 0.4
-                highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-                highlight.OutlineTransparency = 0
-                highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-                highlight.Parent = item
-
-                activeFlashlightEspHighlights[item] = highlight
-            end
-        end
-    end
-
-    for item, highlight in pairs(activeFlashlightEspHighlights) do
-        if not currentItems[item] then
-            if highlight and highlight.Parent then highlight:Destroy() end
-            activeFlashlightEspHighlights[item] = nil
-        end
-    end
-end
-
-local function startFlashlightEsp()
-    if flashlightEspEnabled then return end
-    flashlightEspEnabled = true
-    flashlightEspThread = task.spawn(function()
-        while flashlightEspEnabled and isScriptRunning do
-            updateFlashlightEsp()
-            task.wait(7)
-        end
-    end)
-end
-
-local function stopFlashlightEsp()
-    flashlightEspEnabled = false
-    if flashlightEspThread then flashlightEspThread = nil end
-    clearFlashlightEsp()
-end
-
--- ===== ARTUR ESP LOGIC =====
-local function findArturObjects()
-    local arturs = {}
-    local hitboxes = workspace:FindFirstChild("Hitboxes")
-    if hitboxes then
-        for _, child in pairs(hitboxes:GetChildren()) do
-            if child.Name == "Artur" then table.insert(arturs, child) end
-        end
-    end
-    for _, obj in pairs(workspace:GetChildren()) do
-        if obj.Name == "Artur" and (obj:IsA("Model") or obj:IsA("BasePart")) then
-            if not table.find(arturs, obj) then table.insert(arturs, obj) end
-        end
-    end
-    return arturs
-end
-
-local function clearArturEsp()
-    for item, highlight in pairs(activeArturEspHighlights) do
-        if highlight and highlight.Parent then highlight:Destroy() end
-    end
-    table.clear(activeArturEspHighlights)
-end
-
-local function updateArturEsp()
-    if not arturEspEnabled or not isScriptRunning then return end
-    local arturs = findArturObjects()
-    local currentItems = {}
-
-    for _, item in ipairs(arturs) do
-        if item and item.Parent then
-            currentItems[item] = true
-            if not activeArturEspHighlights[item] then
-                local highlight = Instance.new("Highlight")
-                highlight.Name = "SwillArturEsp"
-                highlight.Adornee = item
-                highlight.FillColor = Color3.fromRGB(255, 0, 0)
-                highlight.FillTransparency = 0.3
-                highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-                highlight.OutlineTransparency = 0
-                highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-                highlight.Parent = item
-
-                activeArturEspHighlights[item] = highlight
-            end
-        end
-    end
-
-    for item, highlight in pairs(activeArturEspHighlights) do
-        if not currentItems[item] then
-            if highlight and highlight.Parent then highlight:Destroy() end
-            activeArturEspHighlights[item] = nil
-        end
-    end
-end
-
-local function startArturEsp()
-    if arturEspEnabled then return end
-    arturEspEnabled = true
-    arturEspThread = task.spawn(function()
-        while arturEspEnabled and isScriptRunning do
-            updateArturEsp()
-            task.wait(7)
-        end
-    end)
-end
-
-local function stopArturEsp()
-    arturEspEnabled = false
-    if arturEspThread then arturEspThread = nil end
-    clearArturEsp()
-end
-
--- ===== ANTON CHIGUR ESP LOGIC =====
-local function findAntonChigurObjects()
-    local antonList = {}
-    for _, obj in pairs(workspace:GetDescendants()) do
-        if (obj.Name == "AntonChigur" or obj.Name == "Anton") and (obj:IsA("Model") or obj:IsA("BasePart")) then
-            table.insert(antonList, obj)
-        end
-    end
-    return antonList
-end
-
-local function clearAntonChigurEsp()
-    for item, highlight in pairs(activeAntonChigurEspHighlights) do
-        if highlight and highlight.Parent then highlight:Destroy() end
-    end
-    table.clear(activeAntonChigurEspHighlights)
-end
-
-local function updateAntonChigurEsp()
-    if not antonChigurEspEnabled or not isScriptRunning then return end
-    local antonList = findAntonChigurObjects()
-    local currentItems = {}
-
-    for _, item in ipairs(antonList) do
-        if item and item.Parent then
-            currentItems[item] = true
-            if not activeAntonChigurEspHighlights[item] then
-                local highlight = Instance.new("Highlight")
-                highlight.Name = "SwillAntonEsp"
-                highlight.Adornee = item
-                highlight.FillColor = Color3.fromRGB(138, 43, 226)
-                highlight.FillTransparency = 0.3
-                highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-                highlight.OutlineTransparency = 0
-                highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-                highlight.Parent = item
-
-                activeAntonChigurEspHighlights[item] = highlight
-            end
-        end
-    end
-
-    for item, highlight in pairs(activeAntonChigurEspHighlights) do
-        if not currentItems[item] then
-            if highlight and highlight.Parent then highlight:Destroy() end
-            activeAntonChigurEspHighlights[item] = nil
-        end
-    end
-end
-
-local function startAntonChigurEsp()
-    if antonChigurEspEnabled then return end
-    antonChigurEspEnabled = true
-    antonChigurEspThread = task.spawn(function()
-        while antonChigurEspEnabled and isScriptRunning do
-            updateAntonChigurEsp()
-            task.wait(7)
-        end
-    end)
-end
-
-local function stopAntonChigurEsp()
-    antonChigurEspEnabled = false
-    if antonChigurEspThread then antonChigurEspThread = nil end
-    clearAntonChigurEsp()
-end
-
--- ===== DRUN (1-6) ESP LOGIC =====
-local function findDrunObjects()
-    local drunList = {}
-    for _, obj in pairs(workspace:GetDescendants()) do
-        if string.match(obj.Name, "^Drun%d+$") and (obj:IsA("Model") or obj:IsA("BasePart")) then
-            table.insert(drunList, obj)
-        end
-    end
-    return drunList
-end
-
-local function clearDrunEsp()
-    for item, highlight in pairs(activeDrunEspHighlights) do
-        if highlight and highlight.Parent then highlight:Destroy() end
-    end
-    table.clear(activeDrunEspHighlights)
-end
-
-local function updateDrunEsp()
-    if not drunEspEnabled or not isScriptRunning then return end
-    local drunList = findDrunObjects()
-    local currentItems = {}
-
-    for _, item in ipairs(drunList) do
-        if item and item.Parent then
-            currentItems[item] = true
-            if not activeDrunEspHighlights[item] then
-                local highlight = Instance.new("Highlight")
-                highlight.Name = "SwillDrunEsp"
-                highlight.Adornee = item
-                highlight.FillColor = Color3.fromRGB(255, 140, 0)
-                highlight.FillTransparency = 0.3
-                highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-                highlight.OutlineTransparency = 0
-                highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-                highlight.Parent = item
-
-                activeDrunEspHighlights[item] = highlight
-            end
-        end
-    end
-
-    for item, highlight in pairs(activeDrunEspHighlights) do
-        if not currentItems[item] then
-            if highlight and highlight.Parent then highlight:Destroy() end
-            activeDrunEspHighlights[item] = nil
-        end
-    end
-end
-
-local function startDrunEsp()
-    if drunEspEnabled then return end
-    drunEspEnabled = true
-    drunEspThread = task.spawn(function()
-        while drunEspEnabled and isScriptRunning do
-            updateDrunEsp()
-            task.wait(7)
-        end
-    end)
-end
-
-local function stopDrunEsp()
-    drunEspEnabled = false
-    if drunEspThread then drunEspThread = nil end
-    clearDrunEsp()
+local function toggleDrunEsp(v)
+    drunEspEnabled = v
+    setupGenericEventEsp(
+        "Drun",
+        function() return drunEspEnabled end,
+        function(obj) return string.match(obj.Name, "^Drun%d+$") and (obj:IsA("Model") or obj:IsA("BasePart")) end,
+        activeDrunEspHighlights,
+        function() return drunEspColor end,
+        function(obj) return obj.Name end,
+        "SwillDrunEsp"
+    )
 end
 
 -- ===== ANTI ARTUR =====
@@ -1163,44 +1033,44 @@ local function teleportToArturAndActivate(arturObj)
     if isTeleportingToArtur then return end
     isTeleportingToArtur = true
     local char = plr.Character
-    if not char or not char:FindFirstChild("HumanoidRootPart") then 
-        isTeleportingToArtur = false 
-        return 
+    if not char or not char:FindFirstChild("HumanoidRootPart") then
+        isTeleportingToArtur = false
+        return
     end
-    
+
     local arturPos = nil
     local success, pivot = pcall(function() return arturObj:GetPivot().Position end)
-    if not success then 
-        isTeleportingToArtur = false 
-        return 
+    if not success then
+        isTeleportingToArtur = false
+        return
     end
     arturPos = pivot
-    
+
     local oldPos = char.HumanoidRootPart.CFrame
     char.HumanoidRootPart.CFrame = CFrame.new(arturPos + Vector3.new(0, 3, 2))
     task.wait(0.3)
-    
+
     local prompt = arturObj:FindFirstChildOfClass("ProximityPrompt") or arturObj:FindFirstChildWhichIsA("ProximityPrompt", true)
     if prompt then
         local oldHold, oldDist, oldLOS = prompt.HoldDuration, prompt.MaxActivationDistance, prompt.RequiresLineOfSight
         prompt.HoldDuration = 0
         prompt.MaxActivationDistance = 100
         prompt.RequiresLineOfSight = false
-        pcall(function() 
+        pcall(function()
             if fire_prompt then
-                fire_prompt(prompt) 
+                fire_prompt(prompt)
             end
         end)
         prompt.HoldDuration, prompt.MaxActivationDistance, prompt.RequiresLineOfSight = oldHold, oldDist, oldLOS
     end
-    
+
     task.wait(0.5)
     char.HumanoidRootPart.CFrame = oldPos
     task.wait(1)
     isTeleportingToArtur = false
 end
 
-local function manualTeleportToArtur()
+function manualTeleportToArtur()
     local artur = findArtur()
     if artur then
         teleportToArturAndActivate(artur)
@@ -1212,7 +1082,7 @@ end
 local function startAntiArtur()
     if antiArturConnection then antiArturConnection:Disconnect() end
     antiArturEnabled = true
-    antiArturConnection = runService.Stepped:Connect(function()
+    antiArturConnection = RunService.Stepped:Connect(function()
         if not antiArturEnabled or not isScriptRunning then return end
         local artur = findArtur()
         if artur then teleportToArturAndActivate(artur) end
@@ -1221,100 +1091,16 @@ end
 
 local function stopAntiArtur()
     antiArturEnabled = false
-    if antiArturConnection then 
+    if antiArturConnection then
         antiArturConnection:Disconnect()
-        antiArturConnection = nil 
+        antiArturConnection = nil
     end
-end
-
--- ===== FLOATING DRAGGABLE ARTUR TP BUTTON =====
-local function removeFloatingArturButton()
-    if arturTpButtonGui then
-        arturTpButtonGui:Destroy()
-        arturTpButtonGui = nil
-    end
-end
-
-local function createFloatingArturButton()
-    removeFloatingArturButton()
-
-    local ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Name = "ArturTpScreenGui"
-    ScreenGui.ResetOnSpawn = false
-    
-    local coreGui = game:GetService("CoreGui")
-    if pcall(function() ScreenGui.Parent = coreGui end) then
-    else
-        ScreenGui.Parent = plr:WaitForChild("PlayerGui")
-    end
-
-    local Button = Instance.new("TextButton")
-    Button.Name = "ArturTpButton"
-    Button.Size = UDim2.new(0, 140, 0, 45)
-    Button.Position = UDim2.new(0.5, -70, 0.85, 0)
-    Button.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
-    Button.Text = "TP TO ARTUR"
-    Button.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Button.TextSize = 14
-    Button.Font = Enum.Font.SourceSansBold
-    Button.Active = true
-    Button.Parent = ScreenGui
-
-    local UICorner = Instance.new("UICorner")
-    UICorner.CornerRadius = UDim.new(0, 8)
-    UICorner.Parent = Button
-
-    local UIStroke = Instance.new("UIStroke")
-    UIStroke.Color = Color3.fromRGB(255, 255, 255)
-    UIStroke.Thickness = 1.5
-    UIStroke.Parent = Button
-
-    -- Make Button Draggable Logic
-    local dragging = false
-    local dragInput, dragStart, startPos
-
-    local function update(input)
-        local delta = input.Position - dragStart
-        Button.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
-
-    Button.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            dragStart = input.Position
-            startPos = Button.Position
-
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    dragging = false
-                end
-            end)
-        end
-    end)
-
-    Button.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-            dragInput = input
-        end
-    end)
-
-    UserInputService.InputChanged:Connect(function(input)
-        if input == dragInput and dragging then
-            update(input)
-        end
-    end)
-
-    Button.MouseButton1Click:Connect(function()
-        manualTeleportToArtur()
-    end)
-
-    arturTpButtonGui = ScreenGui
 end
 
 -- ===== AUTO EXECUTE ON TELEPORT =====
 local function setupAutoTeleportExec()
     if teleportConnection then teleportConnection:Disconnect() end
-    
+
     teleportConnection = plr.OnTeleport:Connect(function()
         if autoExecOnTeleport and isScriptRunning and not teleportFired then
             teleportFired = true
@@ -1337,11 +1123,24 @@ local function setupAutoTeleportExec()
                         warn("Failed to download script on teleport!")
                     end
                 ]], AUTH_TOKEN, RAW_SCRIPT_URL)
-                
+
                 queue_tp(codeToQueue)
             end
         end
     end)
+end
+
+-- ===== DISABLE AUTO EXEC FUNCTION =====
+local function disableAutoExec()
+    autoExecOnTeleport = false
+
+    if uiElements.AutoTeleportToggle and uiElements.AutoTeleportToggle.Set then
+        uiElements.AutoTeleportToggle:Set(false)
+    end
+
+    if writefile then
+        writefile(configFolder .. "/autoexec_state.txt", "false")
+    end
 end
 
 -- ===== UNLOAD / DISABLE SCRIPT =====
@@ -1349,23 +1148,24 @@ local function unloadScript()
     isScriptRunning = false
     _G.SwillHubLoaded = nil
 
-    -- Отключаем автовыполнение и обновляем файл состояния
-    autoExecOnTeleport = false
-    if uiElements.AutoTeleportToggle and uiElements.AutoTeleportToggle.Set then
-        uiElements.AutoTeleportToggle:Set(false)
-    end
-    if writefile then
-        writefile(configFolder .. "/autoexec_state.txt", "false")
-    end
-    
+    disableAutoExec()
     stopFarm()
-    stopCoinsEsp()
-    stopAxeEsp()
-    stopBandageEsp()
-    stopFlashlightEsp()
-    stopArturEsp()
-    stopAntonChigurEsp()
-    stopDrunEsp()
+
+    toggleCoinsEsp(false)
+    toggleAxeEsp(false)
+    toggleBandageEsp(false)
+    toggleFlashlightEsp(false)
+    togglePillsEsp(false)
+    toggleShkafEsp(false)
+    toggleArturEsp(false)
+    toggleAntonChigurEsp(false)
+    toggleDrunEsp(false)
+
+    for _, conn in pairs(espConnections) do
+        if conn then conn:Disconnect() end
+    end
+    table.clear(espConnections)
+
     stopMonsterNotifications()
     stopWalkspeed()
     stopNoclip()
@@ -1373,9 +1173,16 @@ local function unloadScript()
     stopFullbright()
     stopHolySpice()
     stopAntiArtur()
-    removeFloatingArturButton()
-    if teleportConnection then teleportConnection:Disconnect() end
-    
+
+    if teleportConnection then
+        teleportConnection:Disconnect()
+        teleportConnection = nil
+    end
+
+    if mobileGui then
+        mobileGui:Destroy()
+    end
+
     revertFullbright()
     Window:Unload()
     print("SWILL MEGA HUB - Script successfully disabled and unloaded.")
@@ -1468,87 +1275,200 @@ TabHome:CreateButton({
 -- ===== INTERFACE - FARM TAB =====
 TabFarm:CreateSection({ name = "Coin Farm" })
 
+coinsStat = TabFarm:CreateStat({
+    name = "Collected Coins",
+    description = "Количество собранных монет за сессию",
+    value = 0,
+    prefix = "",
+    suffix = " шт."
+})
+
 uiElements.FarmToggle = TabFarm:CreateToggle({
     name = "ON/OFF FARM",
     currentValue = false,
-    callback = function(v) 
-        if v then startFarm() else stopFarm() end 
+    callback = function(v)
+        if v then startFarm() else stopFarm() end
     end,
 })
 
-TabFarm:CreateButton({ 
-    name = "SCAN COINS", 
-    callback = function() print("Found coins:", #findCoins()) end 
+TabFarm:CreateButton({
+    name = "SCAN COINS",
+    callback = function() print("Found coins:", #findCoins()) end
 })
 
-TabFarm:CreateButton({ 
-    name = "TEST: collect one", 
-    callback = function() 
+TabFarm:CreateButton({
+    name = "TEST: collect one",
+    callback = function()
         local c = findCoins()[1]
-        if c and tpTo(c) then 
+        if c and tpTo(c) then
             task.wait(0.3)
-            activate(c) 
-        end 
-    end 
+            if activate(c) then
+                collected = collected + 1
+                if coinsStat and coinsStat.Set then
+                    coinsStat:Set(collected)
+                end
+            end
+        end
+    end
 })
 
-TabFarm:CreateButton({ 
-    name = "RESET COUNTER", 
-    callback = function() collected = 0 end 
+TabFarm:CreateButton({
+    name = "RESET COUNTER",
+    callback = function()
+        collected = 0
+        if coinsStat and coinsStat.Set then
+            coinsStat:Set(0)
+        end
+    end
 })
 
 -- ===== INTERFACE - ESP TAB =====
 TabEsp:CreateSection({ name = "Item Visual Highlights" })
 
+TabEsp:CreateColorPicker({
+    name = "Coins ESP Color",
+    color = coinsEspColor,
+    callback = function(color)
+        coinsEspColor = color
+        updateEspColorsInTable(activeCoinsEspHighlights, color)
+    end,
+})
+
 uiElements.CoinsEspToggle = TabEsp:CreateToggle({
     name = "Coins ESP",
     description = "Highlights all coins on the map through walls",
     currentValue = false,
-    callback = function(v) if v then startCoinsEsp() else stopCoinsEsp() end end,
+    callback = function(v) toggleCoinsEsp(v) end,
+})
+
+TabEsp:CreateColorPicker({
+    name = "Axe ESP Color",
+    color = axeEspColor,
+    callback = function(color)
+        axeEspColor = color
+        updateEspColorsInTable(activeAxeEspHighlights, color)
+    end,
 })
 
 uiElements.AxeEspToggle = TabEsp:CreateToggle({
     name = "Axe ESP",
     description = "Highlights all axes on the map through walls",
     currentValue = false,
-    callback = function(v) if v then startAxeEsp() else stopAxeEsp() end end,
+    callback = function(v) toggleAxeEsp(v) end,
+})
+
+TabEsp:CreateColorPicker({
+    name = "Bandage ESP Color",
+    color = bandageEspColor,
+    callback = function(color)
+        bandageEspColor = color
+        updateEspColorsInTable(activeBandageEspHighlights, color)
+    end,
 })
 
 uiElements.BandageEspToggle = TabEsp:CreateToggle({
     name = "Bandage ESP",
     description = "Highlights all bandages/medkits on the map through walls",
     currentValue = false,
-    callback = function(v) if v then startBandageEsp() else stopBandageEsp() end end,
+    callback = function(v) toggleBandageEsp(v) end,
+})
+
+TabEsp:CreateColorPicker({
+    name = "Flashlight ESP Color",
+    color = flashlightEspColor,
+    callback = function(color)
+        flashlightEspColor = color
+        updateEspColorsInTable(activeFlashlightEspHighlights, color)
+    end,
 })
 
 uiElements.FlashlightEspToggle = TabEsp:CreateToggle({
     name = "Flashlight ESP",
     description = "Highlights all flashlights on the map through walls",
     currentValue = false,
-    callback = function(v) if v then startFlashlightEsp() else stopFlashlightEsp() end end,
+    callback = function(v) toggleFlashlightEsp(v) end,
+})
+
+TabEsp:CreateColorPicker({
+    name = "Pills ESP Color",
+    color = pillsEspColor,
+    callback = function(color)
+        pillsEspColor = color
+        updateEspColorsInTable(activePillsEspHighlights, color)
+    end,
+})
+
+uiElements.PillsEspToggle = TabEsp:CreateToggle({
+    name = "Pills ESP",
+    description = "Highlights all pills on the map through walls",
+    currentValue = false,
+    callback = function(v) togglePillsEsp(v) end,
+})
+
+TabEsp:CreateColorPicker({
+    name = "Cabinet ESP Color",
+    color = shkafEspColor,
+    callback = function(color)
+        shkafEspColor = color
+        updateEspColorsInTable(activeShkafEspHighlights, color)
+    end,
+})
+
+uiElements.ShkafEspToggle = TabEsp:CreateToggle({
+    name = "Cabinet ESP",
+    description = "Highlights all cabinets (Shkaf) on the map through walls",
+    currentValue = false,
+    callback = function(v) toggleShkafEsp(v) end,
 })
 
 TabEsp:CreateSection({ name = "Monster & World Visual Highlights" })
 
+TabEsp:CreateColorPicker({
+    name = "Artur ESP Color",
+    color = arturEspColor,
+    callback = function(color)
+        arturEspColor = color
+        updateEspColorsInTable(activeArturEspHighlights, color)
+    end,
+})
+
 uiElements.ArturEspToggle = TabEsp:CreateToggle({
     name = "Artur ESP",
-    description = "Highlights Artur monster through walls in Red",
+    description = "Highlights Artur monster through walls",
     currentValue = false,
-    callback = function(v) if v then startArturEsp() else stopArturEsp() end end,
+    callback = function(v) toggleArturEsp(v) end,
+})
+
+TabEsp:CreateColorPicker({
+    name = "AntonChigur ESP Color",
+    color = antonChigurEspColor,
+    callback = function(color)
+        antonChigurEspColor = color
+        updateEspColorsInTable(activeAntonChigurEspHighlights, color)
+    end,
 })
 
 uiElements.AntonChigurEspToggle = TabEsp:CreateToggle({
     name = "AntonChigur ESP",
-    description = "Highlights Anton Chigur monster through walls in Purple",
+    description = "Highlights Anton Chigur monster through walls",
     currentValue = false,
-    callback = function(v) if v then startAntonChigurEsp() else stopAntonChigurEsp() end end,
+    callback = function(v) toggleAntonChigurEsp(v) end,
+})
+
+TabEsp:CreateColorPicker({
+    name = "Drun ESP Color",
+    color = drunEspColor,
+    callback = function(color)
+        drunEspColor = color
+        updateEspColorsInTable(activeDrunEspHighlights, color)
+    end,
 })
 
 uiElements.DrunEspToggle = TabEsp:CreateToggle({
     name = "Drun ESP",
-    description = "Highlights Drun monsters (Drun1 - Drun6) through walls in Orange",
+    description = "Highlights Drun monsters (Drun1 - Drun6) through walls",
     currentValue = false,
-    callback = function(v) if v then startDrunEsp() else stopDrunEsp() end end,
+    callback = function(v) toggleDrunEsp(v) end,
 })
 
 -- ===== INTERFACE - PLAYER TAB =====
@@ -1557,29 +1477,39 @@ TabPlayer:CreateSection({ name = "WalkSpeed" })
 uiElements.WalkSpeedToggle = TabPlayer:CreateToggle({
     name = "ON/OFF WALKSPEED",
     currentValue = false,
-    callback = function(v) 
-        if v then startWalkspeed() else stopWalkspeed() end 
+    callback = function(v)
+        if v then startWalkspeed() else stopWalkspeed() end
     end,
 })
 
 uiElements.SpeedSlider = TabPlayer:CreateSlider({
-    name = "Speed", 
-    range = {16, 200}, 
-    increment = 1, 
-    suffix = "speed", 
+    name = "Speed",
+    range = {16, 200},
+    increment = 1,
+    suffix = "speed",
     currentValue = 16,
-    callback = function(v) 
+    callback = function(v)
         walkspeed = v
-        if walkspeedEnabled then updateWalkspeed() end 
+        if walkspeedEnabled then updateWalkspeed() end
     end,
 })
 
 TabPlayer:CreateSection({ name = "Noclip" })
 
 uiElements.NoclipToggle = TabPlayer:CreateToggle({
-    name = "ON/OFF NOCLIP", 
+    name = "ON/OFF NOCLIP",
     currentValue = false,
     callback = function(v) toggleNoclip(v) end,
+})
+
+-- Show Noclip Button (прямо под кнопкой Noclip)
+uiElements.ShowNoclipBtnToggle = TabPlayer:CreateToggle({
+    name = "Show Noclip Button",
+    description = "Показывать кнопку Noclip на экране",
+    currentValue = false,
+    callback = function(v)
+        if mobileNoclipBtn then mobileNoclipBtn.Visible = v end
+    end,
 })
 
 TabPlayer:CreateSection({ name = "Fly" })
@@ -1601,78 +1531,85 @@ uiElements.FlySpeedSlider = TabPlayer:CreateSlider({
     end,
 })
 
+-- Show Fly Button (прямо под слайдером/кнопкой Fly)
+uiElements.ShowFlyBtnToggle = TabPlayer:CreateToggle({
+    name = "Show Fly Button",
+    description = "Показывать кнопку Fly на экране",
+    currentValue = false,
+    callback = function(v)
+        if mobileFlyBtn then mobileFlyBtn.Visible = v end
+    end,
+})
+
 -- ===== INTERFACE - VISUAL TAB =====
 TabVisual:CreateSection({ name = "Lighting" })
 
 uiElements.FullbrightToggle = TabVisual:CreateToggle({
-    name = "FULLBRIGHT", 
+    name = "FULLBRIGHT",
     currentValue = false,
-    callback = function(v) 
-        if v then 
+    callback = function(v)
+        if v then
             if holySpiceEnabled then stopHolySpice() end
-            startFullbright() 
-        else 
-            stopFullbright() 
-        end 
+            startFullbright()
+        else
+            stopFullbright()
+        end
     end,
 })
 
 uiElements.HolySpiceToggle = TabVisual:CreateToggle({
-    name = "HOLY SPICE (INSANE)", 
+    name = "HOLY SPICE (INSANE)",
     currentValue = false,
-    callback = function(v) 
-        if v then 
+    callback = function(v)
+        if v then
             if fullbrightEnabled then stopFullbright() end
-            startHolySpice() 
-        else 
-            stopHolySpice() 
-        end 
+            startHolySpice()
+        else
+            stopHolySpice()
+        end
     end,
 })
 
 uiElements.IntensitySlider = TabVisual:CreateSlider({
-    name = "Intensity", 
-    range = {1, 5}, 
-    increment = 0.5, 
-    suffix = "x", 
+    name = "Intensity",
+    range = {1, 5},
+    increment = 0.5,
+    suffix = "x",
     currentValue = 3.0,
     callback = function(v) holySpiceIntensity = v end,
 })
 
-TabVisual:CreateButton({ 
-    name = "RESET LIGHTING", 
-    callback = function() 
+TabVisual:CreateButton({
+    name = "RESET LIGHTING",
+    callback = function()
         stopHolySpice()
-        stopFullbright() 
-    end 
+        stopFullbright()
+    end
 })
 
 -- ===== INTERFACE - MONSTER TAB =====
 TabMonster:CreateSection({ name = "Anti Artur Controls" })
 
 uiElements.AntiArturToggle = TabMonster:CreateToggle({
-    name = "ANTI ARTUR", 
-    description = "Auto teleport to Artur and press E when appears in Hitboxes", 
-    currentValue = false,
-    callback = function(v) 
-        if v then startAntiArtur() else stopAntiArtur() end 
-    end,
-})
-
-uiElements.ArturTpBtnToggle = TabMonster:CreateToggle({
-    name = "Enable Artur TP Button",
-    description = "Shows a floating button on screen to teleport to Artur",
+    name = "ANTI ARTUR",
+    description = "Auto teleport to Artur and press E when appears in Hitboxes",
     currentValue = false,
     callback = function(v)
-        if v then
-            createFloatingArturButton()
-        else
-            removeFloatingArturButton()
-        end
+        if v then startAntiArtur() else stopAntiArtur() end
     end,
 })
 
-TabMonster:CreateButton({ name = "TEST: Teleport to Artur", callback = manualTeleportToArtur })
+TabMonster:CreateButton({ name = "Teleport to Artur", callback = manualTeleportToArtur })
+
+-- Show Artur TP Button (прямо под кнопкой Teleport to Artur)
+uiElements.ShowArturBtnToggle = TabMonster:CreateToggle({
+    name = "Show Artur TP Button",
+    description = "Показывать кнопку TP to Artur на экране",
+    currentValue = false,
+    callback = function(v)
+        if mobileArturTpBtn then mobileArturTpBtn.Visible = v end
+    end,
+})
 
 TabMonster:CreateSection({ name = "Monster Detector" })
 
@@ -1717,25 +1654,30 @@ local function getCurrentConfigData()
         AxeEspEnabled = axeEspEnabled,
         BandageEspEnabled = bandageEspEnabled,
         FlashlightEspEnabled = flashlightEspEnabled,
+        PillsEspEnabled = pillsEspEnabled,
         ArturEspEnabled = arturEspEnabled,
         AntonChigurEspEnabled = antonChigurEspEnabled,
         DrunEspEnabled = drunEspEnabled,
+        ShkafEspEnabled = shkafEspEnabled,
         AutoExecOnTeleport = autoExecOnTeleport,
-        Language = CurrentLanguage
+        Language = CurrentLanguage,
+        ShowFlyBtn = mobileFlyBtn and mobileFlyBtn.Visible or false,
+        ShowNoclipBtn = mobileNoclipBtn and mobileNoclipBtn.Visible or false,
+        ShowArturBtn = mobileArturTpBtn and mobileArturTpBtn.Visible or false
     }
 end
 
 local function applyConfigData(data)
     if not data then return end
-    
-    if data.WalkSpeed ~= nil and uiElements.SpeedSlider then 
-        uiElements.SpeedSlider:Set(data.WalkSpeed) 
+
+    if data.WalkSpeed ~= nil and uiElements.SpeedSlider then
+        uiElements.SpeedSlider:Set(data.WalkSpeed)
     end
-    
+
     if data.WalkSpeedEnabled ~= nil and uiElements.WalkSpeedToggle then
         uiElements.WalkSpeedToggle:Set(data.WalkSpeedEnabled)
     end
-    
+
     if data.NoclipEnabled ~= nil and uiElements.NoclipToggle then
         uiElements.NoclipToggle:Set(data.NoclipEnabled)
     end
@@ -1764,6 +1706,10 @@ local function applyConfigData(data)
         uiElements.FlashlightEspToggle:Set(data.FlashlightEspEnabled)
     end
 
+    if data.PillsEspEnabled ~= nil and uiElements.PillsEspToggle then
+        uiElements.PillsEspToggle:Set(data.PillsEspEnabled)
+    end
+
     if data.ArturEspEnabled ~= nil and uiElements.ArturEspToggle then
         uiElements.ArturEspToggle:Set(data.ArturEspEnabled)
     end
@@ -1776,14 +1722,18 @@ local function applyConfigData(data)
         uiElements.DrunEspToggle:Set(data.DrunEspEnabled)
     end
 
+    if data.ShkafEspEnabled ~= nil and uiElements.ShkafEspToggle then
+        uiElements.ShkafEspToggle:Set(data.ShkafEspEnabled)
+    end
+
     if data.MonsterNotifyEnabled ~= nil and uiElements.MonsterNotifyToggle then
         uiElements.MonsterNotifyToggle:Set(data.MonsterNotifyEnabled)
     end
-    
-    if data.HolySpiceIntensity ~= nil and uiElements.IntensitySlider then 
-        uiElements.IntensitySlider:Set(data.HolySpiceIntensity) 
+
+    if data.HolySpiceIntensity ~= nil and uiElements.IntensitySlider then
+        uiElements.IntensitySlider:Set(data.HolySpiceIntensity)
     end
-    
+
     if data.HolySpiceEnabled ~= nil and uiElements.HolySpiceToggle then
         uiElements.HolySpiceToggle:Set(data.HolySpiceEnabled)
     end
@@ -1791,17 +1741,29 @@ local function applyConfigData(data)
     if data.FullbrightEnabled ~= nil and uiElements.FullbrightToggle then
         uiElements.FullbrightToggle:Set(data.FullbrightEnabled)
     end
-    
+
     if data.AntiArturEnabled ~= nil and uiElements.AntiArturToggle then
         uiElements.AntiArturToggle:Set(data.AntiArturEnabled)
     end
-    
+
     if data.FarmEnabled ~= nil and uiElements.FarmToggle then
         uiElements.FarmToggle:Set(data.FarmEnabled)
     end
-    
-    if data.AutoExecOnTeleport ~= nil and uiElements.AutoTeleportToggle then 
-        uiElements.AutoTeleportToggle:Set(data.AutoExecOnTeleport) 
+
+    if data.AutoExecOnTeleport ~= nil and uiElements.AutoTeleportToggle then
+        uiElements.AutoTeleportToggle:Set(data.AutoExecOnTeleport)
+    end
+
+    if data.ShowFlyBtn ~= nil and uiElements.ShowFlyBtnToggle then
+        uiElements.ShowFlyBtnToggle:Set(data.ShowFlyBtn)
+    end
+
+    if data.ShowNoclipBtn ~= nil and uiElements.ShowNoclipBtnToggle then
+        uiElements.ShowNoclipBtnToggle:Set(data.ShowNoclipBtn)
+    end
+
+    if data.ShowArturBtn ~= nil and uiElements.ShowArturBtnToggle then
+        uiElements.ShowArturBtnToggle:Set(data.ShowArturBtn)
     end
 
     task.defer(function()
@@ -1819,7 +1781,7 @@ local function saveConfigToFile(cfgName)
         Window:Notify({ title = "Config Error", content = "Please enter a valid config name!" })
         return
     end
-    
+
     if writefile then
         local filepath = configFolder .. "/" .. cfgName .. ".json"
         local jsonData = HttpService:JSONEncode(getCurrentConfigData())
@@ -1831,7 +1793,7 @@ end
 local function loadConfigFromFile(cfgName)
     if cfgName == "---" or cfgName == "" then return end
     local filepath = configFolder .. "/" .. cfgName .. ".json"
-    
+
     if isfile and readfile and isfile(filepath) then
         local content = readfile(filepath)
         local success, data = pcall(function() return HttpService:JSONDecode(content) end)
@@ -1971,7 +1933,7 @@ setupAutoTeleportExec()
 -- ===== CHECK AUTOLOAD & SAVED STATES ON START =====
 task.spawn(function()
     task.wait(0.5)
-    
+
     local stateFile = configFolder .. "/autoexec_state.txt"
     if isfile and readfile and isfile(stateFile) then
         local savedState = readfile(stateFile)
@@ -1979,7 +1941,7 @@ task.spawn(function()
             uiElements.AutoTeleportToggle:Set(true)
         end
     end
-    
+
     task.wait(0.5)
     local autoFile = configFolder .. "/autoload.txt"
     if isfile and readfile and isfile(autoFile) then
@@ -1993,7 +1955,7 @@ end)
 -- ===== WELCOME =====
 task.wait(1)
 print("=================================")
-print("Script for Murino horror")
+print("Mur hub (Mobile Adapted)")
 print("Author: NikolayKot")
 print("Original script:", SCRIPT_PAGE_URL)
 print("=================================")
